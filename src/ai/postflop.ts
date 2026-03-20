@@ -1,6 +1,7 @@
 import type { Card, AIProfile, ActionType } from '@/types';
 import { analyzeBoardTexture, textureAdjustment } from './board-texture';
 import { classifyHand, type MadeHandTier, type DrawTier } from './hand-classifier';
+import { sprBetSizing, rangeAdvantageScore, multiwayPenalty } from './spr';
 
 export interface PostflopDecision {
   action: ActionType;
@@ -25,6 +26,10 @@ export interface PostflopContext {
   chips: number;
   /** The BB amount */
   bb: number;
+  /** Stack-to-Pot Ratio (effective stack / pot). Defaults to 5 if not provided. */
+  spr?: number;
+  /** Number of active non-folded opponents. Defaults to 1 if not provided. */
+  opponents?: number;
 }
 
 /**
@@ -59,7 +64,9 @@ function aggressorDecision(
   texAdj: number,
   rng: () => number,
 ): PostflopDecision {
-  const { profile, street, potSize, chips, bb } = ctx;
+  const { profile, street, communityCards, potSize, chips, bb } = ctx;
+  const spr = ctx.spr ?? 5;
+  const opponents = ctx.opponents ?? 1;
 
   let betFreq: number;
   switch (street) {
@@ -70,6 +77,13 @@ function aggressorDecision(
 
   // Apply texture adjustment
   betFreq = clamp01(betFreq + texAdj);
+
+  // Range advantage adjustment: high advantage → bet more, low → check more
+  const rangeAdv = rangeAdvantageScore(communityCards, true);
+  betFreq = clamp01(betFreq + rangeAdv * 0.15);
+
+  // Multiway penalty: reduce c-bet frequency as opponents increase
+  betFreq = clamp01(betFreq * multiwayPenalty(opponents));
 
   // Made hand tier adjustment
   betFreq = adjustForMadeHand(betFreq, madeTier);
@@ -84,7 +98,11 @@ function aggressorDecision(
   }
 
   if (rng() < betFreq) {
-    const betSize = Math.round(potSize * profile.cBetSize);
+    // SPR-based bet sizing blended with preset cBetSize
+    const sprSize = sprBetSizing(spr);
+    // Blend: weight SPR recommendation 70%, preset 30%
+    const blendedSize = sprSize * 0.7 + profile.cBetSize * 0.3;
+    const betSize = Math.round(potSize * blendedSize);
     const amount = Math.min(Math.max(betSize, bb), chips);
     return { action: 'BET', amount };
   }
@@ -145,10 +163,13 @@ function passiveDecision(
   rng: () => number,
 ): PostflopDecision {
   const { profile, potSize, chips, bb } = ctx;
+  const spr = ctx.spr ?? 5;
 
   // Lead with very strong hands occasionally
   if (madeTier === 1 && rng() < 0.3) {
-    const betSize = Math.round(potSize * profile.cBetSize);
+    const sprSize = sprBetSizing(spr);
+    const blendedSize = sprSize * 0.7 + profile.cBetSize * 0.3;
+    const betSize = Math.round(potSize * blendedSize);
     return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
   }
 
