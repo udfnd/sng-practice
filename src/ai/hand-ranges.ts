@@ -37,6 +37,25 @@ export function getHandPercentile(
 }
 
 /**
+ * Get the baseline percentile for a hand (average of ring 6 positions, HU excluded).
+ * Used for positionAwareness interpolation (Design Doc 6.4.4).
+ */
+export function getHandBaselinePercentile(
+  highRank: number,
+  lowRank: number,
+  suited: boolean,
+): number {
+  const name = handClassName(highRank, lowRank, suited);
+  const entry = HAND_RANGE_TABLE.find((h) => h.name === name);
+  if (!entry) {
+    throw new Error(`Hand class not found: ${name}`);
+  }
+  const ringPositions: PositionGroup[] = ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  const sum = ringPositions.reduce((acc, pos) => acc + entry.percentiles[pos], 0);
+  return sum / ringPositions.length;
+}
+
+/**
  * Get hand class name from ranks.
  * Ranks: 2-14 (14=Ace)
  */

@@ -31,22 +31,22 @@ export interface PostflopContext {
  * Make a postflop decision.
  */
 // @MX:TODO | Missing integration tests for aggressor cbet, facing bet, passive decision paths
-export function makePostflopDecision(ctx: PostflopContext): PostflopDecision {
+export function makePostflopDecision(ctx: PostflopContext, rng: () => number = Math.random): PostflopDecision {
   const { holeCards, communityCards, isAggressor, facingBet } = ctx;
   const texture = analyzeBoardTexture(communityCards);
   const classification = classifyHand(holeCards, communityCards);
   const texAdj = textureAdjustment(texture);
 
   if (facingBet) {
-    return facingBetDecision(ctx, classification.madeTier, classification.drawTier, texAdj);
+    return facingBetDecision(ctx, classification.madeTier, classification.drawTier, texAdj, rng);
   }
 
   if (isAggressor) {
-    return aggressorDecision(ctx, classification.madeTier, classification.drawTier, texAdj);
+    return aggressorDecision(ctx, classification.madeTier, classification.drawTier, texAdj, rng);
   }
 
   // Not aggressor, not facing bet: check or bet
-  return passiveDecision(ctx, classification.madeTier, classification.drawTier);
+  return passiveDecision(ctx, classification.madeTier, classification.drawTier, rng);
 }
 
 /**
@@ -57,6 +57,7 @@ function aggressorDecision(
   madeTier: MadeHandTier,
   drawTier: DrawTier,
   texAdj: number,
+  rng: () => number,
 ): PostflopDecision {
   const { profile, street, potSize, chips, bb } = ctx;
 
@@ -82,7 +83,7 @@ function aggressorDecision(
     betFreq = clamp01(profile.bluffFreq * 0.4);
   }
 
-  if (Math.random() < betFreq) {
+  if (rng() < betFreq) {
     const betSize = Math.round(potSize * profile.cBetSize);
     const amount = Math.min(Math.max(betSize, bb), chips);
     return { action: 'BET', amount };
@@ -99,6 +100,7 @@ function facingBetDecision(
   madeTier: MadeHandTier,
   drawTier: DrawTier,
   _texAdj: number,
+  rng: () => number,
 ): PostflopDecision {
   const { profile, facingAmount, chips } = ctx;
 
@@ -119,12 +121,12 @@ function facingBetDecision(
   foldFreq = clamp01(foldFreq);
 
   // Check-raise with strong hands
-  if (madeTier === 1 && Math.random() < profile.checkRaiseFreq) {
-    const raiseSize = Math.min(facingAmount * 3, chips);
+  if (madeTier === 1 && rng() < profile.checkRaiseFreq) {
+    const raiseSize = Math.min(Math.round(facingAmount * 3), chips);
     return { action: 'RAISE', amount: raiseSize };
   }
 
-  if (Math.random() < foldFreq) {
+  if (rng() < foldFreq) {
     return { action: 'FOLD', amount: 0 };
   }
 
@@ -140,17 +142,18 @@ function passiveDecision(
   ctx: PostflopContext,
   madeTier: MadeHandTier,
   drawTier: DrawTier,
+  rng: () => number,
 ): PostflopDecision {
   const { profile, potSize, chips, bb } = ctx;
 
   // Lead with very strong hands occasionally
-  if (madeTier === 1 && Math.random() < 0.3) {
+  if (madeTier === 1 && rng() < 0.3) {
     const betSize = Math.round(potSize * profile.cBetSize);
     return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
   }
 
   // Semi-bluff lead with strong draws
-  if (drawTier >= 2 && Math.random() < profile.bluffFreq * 0.3) {
+  if (drawTier >= 2 && rng() < profile.bluffFreq * 0.3) {
     const betSize = Math.round(potSize * 0.5);
     return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
   }

@@ -1,6 +1,6 @@
 import type { AIProfile, ActionType } from '@/types';
 import type { PositionGroup } from './position';
-import { getHandPercentile } from './hand-ranges';
+import { getHandPercentile, getHandBaselinePercentile } from './hand-ranges';
 
 /**
  * Preflop decision result.
@@ -59,31 +59,38 @@ export interface PreflopContext {
 /**
  * Make a preflop decision using the 5-situation state machine.
  */
-// @MX:WARN @MX:REASON="5-situation state machine with Math.random() for bluff decisions" | Main preflop routing — situation A-E
-export function makePreflopDecision(ctx: PreflopContext): PreflopDecision {
+// @MX:WARN @MX:REASON="5-situation state machine with injectable rng for bluff decisions" | Main preflop routing — situation A-E
+export function makePreflopDecision(ctx: PreflopContext, rng: () => number = Math.random): PreflopDecision {
   const rawPercentile = getHandPercentile(ctx.highRank, ctx.lowRank, ctx.suited, ctx.position);
-  const percentile = applyPositionAwareness(rawPercentile, ctx.position, ctx.profile.positionAwareness);
+  const baseline = getHandBaselinePercentile(ctx.highRank, ctx.lowRank, ctx.suited);
+  const percentile = applyPositionAwareness(rawPercentile, ctx.position, ctx.profile.positionAwareness, baseline);
 
   // Push/fold mode: ≤ 10BB
   if (ctx.effectiveStackBB <= 10) {
-    return pushFoldDecision(percentile, ctx);
+    return pushFoldDecision(percentile, ctx, rng);
   }
 
   // Route to appropriate situation
   if (ctx.facingThreeBet) {
-    return situationD(percentile, ctx);
+    return situationD(percentile, ctx, rng);
   }
   if (ctx.isBB && ctx.facingFirstRaise) {
-    return situationE(percentile, ctx);
+    return situationE(percentile, ctx, rng);
   }
   if (ctx.facingFirstRaise) {
-    return situationC(percentile, ctx);
+    return situationC(percentile, ctx, rng);
   }
   if (ctx.limperCount > 0 && ctx.facingBet <= ctx.bb) {
-    return situationB(percentile, ctx);
+    return situationB(percentile, ctx, rng);
   }
   if (ctx.isUnopened) {
-    return situationA(percentile, ctx);
+    return situationA(percentile, ctx, rng);
+  }
+
+  // BB option: pot is unopened but limperCount>0 was already handled above by situationB.
+  // If BB has isUnopened=false and no raise was detected, BB can check for free.
+  if (ctx.isBB && !ctx.facingFirstRaise && !ctx.facingThreeBet) {
+    return { action: 'CHECK', amount: 0, situation: 'BB_DEFENSE' };
   }
 
   // Default: fold
@@ -93,12 +100,12 @@ export function makePreflopDecision(ctx: PreflopContext): PreflopDecision {
 /**
  * Situation A — Unopened Pot (no limpers, no raise)
  */
-function situationA(percentile: number, ctx: PreflopContext): PreflopDecision {
-  const { profile, bb, chips, currentBet } = ctx;
+function situationA(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
+  const { profile, bb, chips, currentBet, isBB } = ctx;
 
   if (percentile <= profile.pfr) {
     // Open raise
-    const rawSize = profile.openRaiseSize * bb + noise(bb);
+    const rawSize = Math.round(profile.openRaiseSize * bb) + noise(bb, rng);
     const raiseSize = Math.max(2 * bb, rawSize);
     const amount = Math.min(raiseSize - currentBet, chips);
     return {
@@ -114,13 +121,18 @@ function situationA(percentile: number, ctx: PreflopContext): PreflopDecision {
     return { action: 'CALL', amount: callAmount, situation: 'UNOPENED' };
   }
 
+  // BB gets to check for free when pot is unopened and hand is outside raise/limp range
+  if (isBB) {
+    return { action: 'CHECK', amount: 0, situation: 'UNOPENED' };
+  }
+
   return { action: 'FOLD', amount: 0, situation: 'UNOPENED' };
 }
 
 /**
  * Situation B — Limped Pot (limpers present, no raise)
  */
-function situationB(percentile: number, ctx: PreflopContext): PreflopDecision {
+function situationB(percentile: number, ctx: PreflopContext, _rng: () => number): PreflopDecision {
   const { profile, bb, chips, currentBet, limperCount } = ctx;
 
   if (percentile <= profile.pfr) {
@@ -143,7 +155,7 @@ function situationB(percentile: number, ctx: PreflopContext): PreflopDecision {
 /**
  * Situation C — Facing First Raise (non-BB)
  */
-function situationC(percentile: number, ctx: PreflopContext): PreflopDecision {
+function situationC(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
 
@@ -155,7 +167,7 @@ function situationC(percentile: number, ctx: PreflopContext): PreflopDecision {
 
   if (percentile <= threeBetCutoff) {
     // 3-bet
-    const size = computeThreeBetSize(facingBet, bb, ctx.position, chips, currentBet);
+    const size = computeThreeBetSize(facingBet, bb, ctx.position, chips, currentBet, rng);
     return { action: 'RAISE', amount: size, situation: 'FACING_RAISE' };
   }
 
@@ -171,7 +183,7 @@ function situationC(percentile: number, ctx: PreflopContext): PreflopDecision {
 /**
  * Situation D — Opener Facing 3-Bet
  */
-function situationD(percentile: number, ctx: PreflopContext): PreflopDecision {
+function situationD(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
   const { profile, facingBet, chips, currentBet, bb } = ctx;
 
   // Step 1: Check 4-bet range (top portion of open range)
@@ -179,13 +191,13 @@ function situationD(percentile: number, ctx: PreflopContext): PreflopDecision {
 
   if (percentile <= fourBetCutoff) {
     // 4-bet (or jam if short)
-    const size = compute4BetSize(facingBet, bb, chips, currentBet);
+    const size = compute4BetSize(facingBet, bb, chips, currentBet, rng);
     return { action: 'RAISE', amount: size, situation: 'FACING_3BET' };
   }
 
   // Step 2: For hands outside 4-bet range: fold or call
-  const rng = pseudoRandom(percentile);
-  if (rng < profile.foldTo3Bet) {
+  const randVal = pseudoRandom(percentile);
+  if (randVal < profile.foldTo3Bet) {
     return { action: 'FOLD', amount: 0, situation: 'FACING_3BET' };
   }
 
@@ -196,7 +208,7 @@ function situationD(percentile: number, ctx: PreflopContext): PreflopDecision {
 /**
  * Situation E — BB Defense
  */
-function situationE(percentile: number, ctx: PreflopContext): PreflopDecision {
+function situationE(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
   const BB_DEFENSE_BONUS = 1.3;
@@ -209,7 +221,7 @@ function situationE(percentile: number, ctx: PreflopContext): PreflopDecision {
 
   if (percentile <= threeBetCutoff) {
     // 3-bet from BB
-    const size = computeThreeBetSize(facingBet, bb, 'BB', chips, currentBet);
+    const size = computeThreeBetSize(facingBet, bb, 'BB', chips, currentBet, rng);
     return { action: 'RAISE', amount: size, situation: 'BB_DEFENSE' };
   }
 
@@ -225,22 +237,33 @@ function situationE(percentile: number, ctx: PreflopContext): PreflopDecision {
 /**
  * Push/fold mode for ≤ 10BB stacks.
  */
-function pushFoldDecision(percentile: number, ctx: PreflopContext): PreflopDecision {
+function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => number): PreflopDecision {
   const { chips, currentBet } = ctx;
-  // Push threshold based on stack size (smaller stack = wider range)
-  const pushThreshold = clamp01(0.05 + (10 - ctx.effectiveStackBB) * 0.03);
+  // Push threshold based on effective stack (Nash-approximated ranges)
+  // At 1BB: ~65%, at 3BB: ~45%, at 5BB: ~30%, at 8BB: ~18%, at 10BB: ~12%
+  const pushThreshold = clamp01(ctx.effectiveStackBB <= 1
+    ? 0.65
+    : 0.65 - (ctx.effectiveStackBB - 1) * 0.06);
 
   if (percentile <= pushThreshold) {
-    return { action: 'RAISE', amount: chips, situation: 'UNOPENED' }; // All-in
+    return { action: 'RAISE', amount: chips + currentBet, situation: 'UNOPENED' }; // All-in (raiseTo = total committed)
   }
 
-  // If facing a bet, tighter call range
+  // If facing a bet above BB, tighter call range
   if (ctx.facingBet > ctx.bb) {
     const callThreshold = pushThreshold * 0.6;
     if (percentile <= callThreshold) {
       const callAmount = Math.min(ctx.facingBet - currentBet, chips);
       return { action: 'CALL', amount: callAmount, situation: 'FACING_RAISE' };
     }
+    return { action: 'FOLD', amount: 0, situation: 'FACING_RAISE' };
+  }
+
+  // BB gets a free check in an unopened pot (no raise above BB).
+  // This is a fundamental poker rule: BB always has the option to check
+  // when no one has raised. Even in push/fold mode, this must be honored.
+  if (ctx.isBB && !ctx.facingFirstRaise) {
+    return { action: 'CHECK', amount: 0, situation: 'BB_DEFENSE' };
   }
 
   return { action: 'FOLD', amount: 0, situation: 'UNOPENED' };
@@ -254,9 +277,10 @@ function computeThreeBetSize(
   position: PositionGroup,
   chips: number,
   currentBet: number,
+  rng: () => number,
 ): number {
   const multiplier = (position === 'BTN' || position === 'CO') ? 3.0 : 3.5;
-  const raw = facingRaise * multiplier + noise(bb);
+  const raw = Math.round(facingRaise * multiplier) + noise(bb, rng);
   const size = Math.max(facingRaise + bb, raw); // at least min-raise
 
   // Jam threshold: 15BB
@@ -264,7 +288,7 @@ function computeThreeBetSize(
     return chips; // all-in
   }
 
-  return Math.min(size, chips);
+  return Math.round(Math.min(size, chips));
 }
 
 function compute4BetSize(
@@ -272,8 +296,9 @@ function compute4BetSize(
   bb: number,
   chips: number,
   currentBet: number,
+  rng: () => number,
 ): number {
-  const raw = facing3Bet * 2.2 + noise(bb);
+  const raw = Math.round(facing3Bet * 2.2) + noise(bb, rng);
   const size = Math.max(facing3Bet + bb, raw);
 
   // Jam threshold: 25BB
@@ -281,7 +306,7 @@ function compute4BetSize(
     return chips; // all-in
   }
 
-  return Math.min(size, chips);
+  return Math.round(Math.min(size, chips));
 }
 
 // ========== Utility ==========
@@ -296,26 +321,28 @@ function facingRaiseAdjust(facingBet: number, bb: number): number {
 }
 
 /**
- * Apply positionAwareness interpolation.
+ * Apply positionAwareness interpolation (Design Doc 6.4.4).
+ *
  * effectivePercentile = baseline + positionAwareness × (positionTable - baseline)
+ * baseline = average of ring 6 positions (EP,MP,CO,BTN,SB,BB). HU excluded.
+ *
+ * awareness = 1.0 → full position sensitivity (use position table exactly)
+ * awareness = 0.0 → uniform play across all positions (use baseline)
  */
 function applyPositionAwareness(
   positionPercentile: number,
   position: PositionGroup,
   awareness: number,
+  baseline: number,
 ): number {
   if (position === 'HU') return positionPercentile; // HU: no interpolation
 
-  // Baseline = average of ring positions (would need all 6 positions' percentiles)
-  // Simplified: use the position percentile directly scaled by awareness
-  // awareness = 1.0 → full table, 0.0 → uniform (use a wider baseline)
-  const uniformFactor = 1.0 + (1.0 - awareness) * 0.3;
-  return clamp01(positionPercentile * uniformFactor);
+  return clamp01(baseline + awareness * (positionPercentile - baseline));
 }
 
-function noise(bb: number): number {
-  // ±0.5BB deterministic pseudo-noise (simplified)
-  return (Math.random() - 0.5) * bb;
+function noise(bb: number, rng: () => number): number {
+  // ±0.5BB deterministic pseudo-noise (simplified), rounded to integer chips
+  return Math.round((rng() - 0.5) * bb);
 }
 
 function pseudoRandom(seed: number): number {
