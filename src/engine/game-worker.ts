@@ -12,10 +12,6 @@ import { createTournament } from './tournament';
 import { PRESETS } from '@/ai/presets';
 import type { PresetType, GameEvent, GameState } from '@/types';
 
-// Minimum and maximum AI thinking delay in milliseconds
-const AI_THINK_MIN_MS = 300;
-const AI_THINK_MAX_MS = 800;
-
 // Minimum interval between STATE_UPDATE messages (throttling)
 const STATE_UPDATE_THROTTLE_MS = 100;
 
@@ -42,14 +38,6 @@ function postStateUpdate(state: GameState, forceFlush = false): void {
     lastStateUpdateTime = now;
     postMsg({ type: 'STATE_UPDATE', state });
   }
-}
-
-/**
- * Sleep for a random duration in [min, max] ms.
- */
-function randomDelay(min: number, max: number): Promise<void> {
-  const ms = min + Math.random() * (max - min);
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -85,46 +73,33 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     humanPlayer.aiProfile = null;
   }
 
-  // ActionProvider: called by orchestrator when a player needs to act
+  // ActionProvider: called by orchestrator ONLY for human players.
+  // AI players are handled internally by the orchestrator with a seeded PRNG.
   const actionProvider = async (
     playerId: string,
     validActions: ValidActionsResult,
     _bettingPlayer: BettingPlayer,
   ): Promise<ActionResponse> => {
-    // Find player in current state
-    const player = tournament.gameState.players.find((p) => p.id === playerId);
+    // Derive valid action types from ValidActionsResult
+    const validActionTypes: import('@/types').ActionType[] = [];
+    if (validActions.canFold) validActionTypes.push('FOLD');
+    if (validActions.canCheck) validActionTypes.push('CHECK');
+    if (validActions.canCall) validActionTypes.push('CALL');
+    if (validActions.canBet) validActionTypes.push('BET');
+    if (validActions.canRaise) validActionTypes.push('RAISE');
 
-    if (player && !player.isHuman && player.aiProfile) {
-      // AI player: signal thinking, delay, then return AI action
-      postMsg({ type: 'AI_THINKING', playerId });
-      await randomDelay(AI_THINK_MIN_MS, AI_THINK_MAX_MS);
+    // Human player: notify main thread and wait for PLAYER_ACTION
+    postMsg({
+      type: 'WAITING_FOR_ACTION',
+      playerId,
+      validActions: validActionTypes,
+      minRaise: validActions.minRaise || validActions.minBet,
+      callAmount: validActions.callAmount,
+    });
 
-      // Import selectAIAction lazily (it's already bundled)
-      const { selectAIAction } = await import('@/ai/action-selector');
-      const actionResult = selectAIAction(player, tournament.gameState, null, Math.random);
-      return { type: actionResult.type, amount: actionResult.amount };
-    } else {
-      // Derive valid action types from ValidActionsResult
-      const validActionTypes: import('@/types').ActionType[] = [];
-      if (validActions.canFold) validActionTypes.push('FOLD');
-      if (validActions.canCheck) validActionTypes.push('CHECK');
-      if (validActions.canCall) validActionTypes.push('CALL');
-      if (validActions.canBet) validActionTypes.push('BET');
-      if (validActions.canRaise) validActionTypes.push('RAISE');
-
-      // Human player: notify main thread and wait for PLAYER_ACTION
-      postMsg({
-        type: 'WAITING_FOR_ACTION',
-        playerId,
-        validActions: validActionTypes,
-        minRaise: validActions.minRaise || validActions.minBet,
-        callAmount: validActions.callAmount,
-      });
-
-      return new Promise<ActionResponse>((resolve) => {
-        pendingActionResolver = resolve;
-      });
-    }
+    return new Promise<ActionResponse>((resolve) => {
+      pendingActionResolver = resolve;
+    });
   };
 
   // Event handler: forward events and throttled state updates

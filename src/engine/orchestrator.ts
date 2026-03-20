@@ -323,8 +323,10 @@ async function runBettingRound(
 
     let actionResult;
     if (!player.isHuman && player.aiProfile) {
-      // AI player: use selectAIAction with per-hand PRNG
-      const rng = handPrng ? () => nextFloat(handPrng) : Math.random;
+      // AI player: use selectAIAction with per-hand PRNG.
+      // handPrng must be initialized before any AI action is taken.
+      if (!handPrng) throw new Error('handPrng must be initialized before AI actions');
+      const rng = () => nextFloat(handPrng);
       actionResult = selectAIAction(player, gameState, preflopAggressor, rng);
     } else {
       // Human player: delegate to ActionProvider
