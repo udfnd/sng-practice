@@ -3,6 +3,7 @@ import type { PositionGroup } from './position';
 import { getHandPercentile, getHandBaselinePercentile } from './hand-ranges';
 import { computeBubbleFactor, icmAdjustedThreshold } from './icm';
 import { getNashPushRange, getNashCallRange } from './nash-tables';
+import { RING_GAME_SCALE } from './presets';
 
 /**
  * Preflop decision result.
@@ -75,6 +76,24 @@ export function makePreflopDecision(ctx: PreflopContext, rng: () => number = Mat
   const baseline = getHandBaselinePercentile(ctx.highRank, ctx.lowRank, ctx.suited);
   const percentile = applyPositionAwareness(rawPercentile, ctx.position, ctx.profile.positionAwareness, baseline);
 
+  // Ring-game scale factors compensate for two systematic effects that reduce measured
+  // VPIP/PFR/3-bet below preset targets in an 8-player SNG simulation:
+  //   1. applyPositionAwareness compresses EP percentiles toward baseline
+  //   2. push/fold mode (≤ 10BB) uses Nash-tight ranges that reduce overall measured stats
+  //
+  // Three separate multipliers are used:
+  //   vpip: scales call/limp/defense cutoffs (SitA limp, SitB call, SitC call, SitE defense)
+  //   pfr:  scales raise cutoffs in SitA/SitB (separate to avoid over-raising Station, which
+  //         has very low pfr=0.08 but high vpip scale due to heavy calling range)
+  //   threeBet: scales 3-bet cutoffs in SitC/SitE (different dilution dynamics)
+  //
+  // Per-preset multipliers are empirically tuned from 100-SNG calibration runs.
+  // See RING_GAME_SCALE in presets.ts for methodology and scale values.
+  const presetScale = RING_GAME_SCALE[ctx.profile.presetType] ?? { vpip: 1.5, pfr: 1.5, threeBet: 1.3 };
+  const vpipCompensation = presetScale.vpip;
+  const pfrCompensation = presetScale.pfr;
+  const threeBetCompensation = presetScale.threeBet;
+
   // Push/fold mode: ≤ 10BB
   if (ctx.effectiveStackBB <= 10) {
     return pushFoldDecision(percentile, ctx, rng);
@@ -85,16 +104,16 @@ export function makePreflopDecision(ctx: PreflopContext, rng: () => number = Mat
     return situationD(percentile, ctx, rng);
   }
   if (ctx.isBB && ctx.facingFirstRaise) {
-    return situationE(percentile, ctx, rng);
+    return situationE(percentile, ctx, rng, vpipCompensation, threeBetCompensation);
   }
   if (ctx.facingFirstRaise) {
-    return situationC(percentile, ctx, rng);
+    return situationC(percentile, ctx, rng, vpipCompensation, threeBetCompensation);
   }
   if (ctx.limperCount > 0 && ctx.facingBet <= ctx.bb) {
-    return situationB(percentile, ctx, rng);
+    return situationB(percentile, ctx, rng, vpipCompensation, pfrCompensation);
   }
   if (ctx.isUnopened) {
-    return situationA(percentile, ctx, rng);
+    return situationA(percentile, ctx, rng, vpipCompensation, pfrCompensation);
   }
 
   // BB option: pot is unopened but limperCount>0 was already handled above by situationB.
@@ -109,11 +128,18 @@ export function makePreflopDecision(ctx: PreflopContext, rng: () => number = Mat
 
 /**
  * Situation A — Unopened Pot (no limpers, no raise)
+ * pfrCompensation widens raise cutoff; vpipCompensation widens limp cutoff.
+ * These are separate because Station has very low pfr (0.08) but high openLimpFreq (0.30);
+ * applying the high vpip multiplier to pfr would massively over-raise Station's range.
  */
-function situationA(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
+function situationA(percentile: number, ctx: PreflopContext, rng: () => number, vpipCompensation: number, pfrCompensation: number): PreflopDecision {
   const { profile, bb, chips, currentBet, isBB } = ctx;
 
-  if (percentile <= profile.pfr) {
+  const effectivePfr = clamp01(profile.pfr * pfrCompensation);
+  // Limp range = pfr cutoff + additional limp-only hands; the limp spread is scaled by vpipCompensation.
+  const effectiveLimp = clamp01(effectivePfr + profile.openLimpFreq * vpipCompensation);
+
+  if (percentile <= effectivePfr) {
     // Open raise
     const rawSize = Math.round(profile.openRaiseSize * bb) + noise(bb, rng);
     const raiseSize = Math.max(2 * bb, rawSize);
@@ -125,7 +151,7 @@ function situationA(percentile: number, ctx: PreflopContext, rng: () => number):
     };
   }
 
-  if (percentile <= profile.pfr + profile.openLimpFreq) {
+  if (percentile <= effectiveLimp) {
     // Open limp
     const callAmount = Math.min(bb - currentBet, chips);
     return { action: 'CALL', amount: callAmount, situation: 'UNOPENED' };
@@ -141,11 +167,15 @@ function situationA(percentile: number, ctx: PreflopContext, rng: () => number):
 
 /**
  * Situation B — Limped Pot (limpers present, no raise)
+ * pfrCompensation widens iso-raise cutoff; vpipCompensation widens call cutoff.
  */
-function situationB(percentile: number, ctx: PreflopContext, _rng: () => number): PreflopDecision {
+function situationB(percentile: number, ctx: PreflopContext, _rng: () => number, vpipCompensation: number, pfrCompensation: number): PreflopDecision {
   const { profile, bb, chips, currentBet, limperCount } = ctx;
 
-  if (percentile <= profile.pfr) {
+  const effectivePfr = clamp01(profile.pfr * pfrCompensation);
+  const effectiveVpip = clamp01(profile.vpip * vpipCompensation);
+
+  if (percentile <= effectivePfr) {
     // Iso-raise
     const rawSize = (profile.openRaiseSize + limperCount) * bb;
     const raiseSize = Math.max(2 * bb, rawSize);
@@ -153,7 +183,7 @@ function situationB(percentile: number, ctx: PreflopContext, _rng: () => number)
     return { action: 'RAISE', amount: amount >= chips ? chips : raiseSize, situation: 'LIMPED' };
   }
 
-  if (percentile <= profile.vpip) {
+  if (percentile <= effectiveVpip) {
     // Limp behind
     const callAmount = Math.min(bb - currentBet, chips);
     return { action: 'CALL', amount: callAmount, situation: 'LIMPED' };
@@ -164,8 +194,10 @@ function situationB(percentile: number, ctx: PreflopContext, _rng: () => number)
 
 /**
  * Situation C — Facing First Raise (non-BB)
+ * vpipCompensation widens calling cutoff; threeBetCompensation widens 3-bet cutoff.
+ * These are separate because 3-bet stat has different dilution dynamics than VPIP.
  */
-function situationC(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
+function situationC(percentile: number, ctx: PreflopContext, rng: () => number, vpipCompensation: number, threeBetCompensation: number): PreflopDecision {
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
 
@@ -174,9 +206,10 @@ function situationC(percentile: number, ctx: PreflopContext, rng: () => number):
   // The raw threshold is higher than the target 3-bet% because push/fold mode adds many
   // facing-raise opportunities to the denominator without generating 3-bets, diluting
   // the measured stat. The preset threeBetFreq accounts for this dilution effect.
-  let callingCutoff = clamp01(profile.vpip * adjust);
+  // vpipCompensation/threeBetCompensation offset position-awareness compression.
+  let callingCutoff = clamp01(profile.vpip * adjust * vpipCompensation);
   let threeBetCutoff = clamp01(Math.min(
-    profile.threeBetFreq * adjust,
+    profile.threeBetFreq * adjust * threeBetCompensation,
     callingCutoff,
   ));
 
@@ -240,17 +273,19 @@ function situationD(percentile: number, ctx: PreflopContext, rng: () => number):
 
 /**
  * Situation E — BB Defense
+ * vpipCompensation widens defense cutoff; threeBetCompensation widens 3-bet cutoff.
  */
-function situationE(percentile: number, ctx: PreflopContext, rng: () => number): PreflopDecision {
+function situationE(percentile: number, ctx: PreflopContext, rng: () => number, vpipCompensation: number, threeBetCompensation: number): PreflopDecision {
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
   const BB_DEFENSE_BONUS = 1.3;
 
-  let bbDefenseCutoff = clamp01(profile.bbDefenseBase * adjust * BB_DEFENSE_BONUS);
+  let bbDefenseCutoff = clamp01(profile.bbDefenseBase * adjust * BB_DEFENSE_BONUS * vpipCompensation);
   // threeBetCutoff: same raw-threshold approach as SitC; threeBetFreq is a percentile cutoff
   // that accounts for push/fold dilution producing the measured target after dilution.
+  // threeBetCompensation offsets position-awareness compression for 3-bet decisions.
   let threeBetCutoff = clamp01(Math.min(
-    profile.threeBetFreq * adjust,
+    profile.threeBetFreq * adjust * threeBetCompensation,
     bbDefenseCutoff,
   ));
 

@@ -68,6 +68,35 @@ export const PRESETS: Record<PresetType, AIProfile> = {
 };
 
 /**
+ * Per-preset ring-game calibration scale factors.
+ *
+ * In an 8-player SNG, two systematic effects reduce measured VPIP/PFR/3-bet below the
+ * preset target values:
+ *   1. applyPositionAwareness compresses EP percentiles toward the baseline, causing tight
+ *      presets with high positionAwareness to play tighter than their raw cutoffs imply.
+ *   2. push/fold mode (≤ 10BB) uses Nash-based ranges that are often tighter than the preset
+ *      VPIP target for TAG/Shark-style presets (which have high pushFoldAccuracy → Nash-tight).
+ *
+ * These multipliers are applied to VPIP/PFR cutoffs in ring-game situations (Sit A–E) to
+ * recover the intended target statistics measured over a full SNG lifecycle.
+ *
+ * Calibration methodology: 100-SNG runs with masterSeed 'tune-v2'.
+ *   vpip: multiplier for call/limp cutoffs (SitA limp, SitB call, SitC call, SitE defense)
+ *   pfr:  multiplier for raise cutoffs in SitA/SitB (separate from vpip because Station
+ *          has very low pfr=0.08 which must not be over-scaled by the high vpip multiplier)
+ *   threeBet: multiplier for threeBetFreq cutoffs in SitC/SitE (separate; 3-bet stat has
+ *             different dilution dynamics than VPIP)
+ */
+export const RING_GAME_SCALE: Record<string, { vpip: number; pfr: number; threeBet: number }> = {
+  Nit:     { vpip: 3.43, pfr: 3.66, threeBet: 3.02 },
+  TAG:     { vpip: 2.47, pfr: 3.65, threeBet: 2.39 },
+  LAG:     { vpip: 1.99, pfr: 2.87, threeBet: 1.97 },
+  Station: { vpip: 2.89, pfr: 0.67, threeBet: 0.91 },
+  Maniac:  { vpip: 1.73, pfr: 2.04, threeBet: 1.62 },
+  Shark:   { vpip: 2.94, pfr: 3.74, threeBet: 2.92 },
+};
+
+/**
  * Constraint validation errors.
  */
 export interface ConstraintError {
