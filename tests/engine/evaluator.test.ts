@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluate7, compareHands, HandCategory, type EvaluatedHand } from '@/engine/evaluator';
+import { evaluate7, compareHands, HandCategory } from '@/engine/evaluator';
 import { toEncoded, fromEncoded } from '@/engine/card';
 import type { Card, Suit } from '@/types';
 

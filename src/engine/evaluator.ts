@@ -18,7 +18,7 @@ export const HandCategory = {
 
 export type HandCategoryType = (typeof HandCategory)[keyof typeof HandCategory];
 
-const CATEGORY_NAMES: Record<HandCategoryType, string> = {
+export const CATEGORY_NAMES: Record<HandCategoryType, string> = {
   [HandCategory.HIGH_CARD]: 'High Card',
   [HandCategory.ONE_PAIR]: 'One Pair',
   [HandCategory.TWO_PAIR]: 'Two Pair',
