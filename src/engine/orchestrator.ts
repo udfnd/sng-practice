@@ -321,6 +321,25 @@ async function runBettingRound(
     // Get valid actions
     const validActions = getValidActions(bettingPlayer, gameState.bettingRound, gameState.blindLevel.bb);
 
+    // Capture isFacingFirstRaise BEFORE applyAction, because applyAction
+    // updates lastAggressorId when this player raises. If captured after,
+    // a 3-bet action would set lastAggressorId = player.id, making
+    // isFacingFirstRaise false and preventing threeBetOpportunities from counting.
+    //
+    // isFacingFirstRaise is true only for a genuine 3-bet opportunity:
+    // - someone else raised (lastAggressorId set to another player), AND
+    // - this player has NOT previously raised (currentBet <= BB means they haven't opened).
+    //   If player.currentBet > BB, they already raised and are now facing a 3-bet (SitD),
+    //   which should NOT be counted as a 3-bet opportunity.
+    const street = gameState.bettingRound.street;
+    const isPreflop = street === 'PREFLOP';
+    const bb = gameState.blindLevel.bb;
+    const playerPreviouslyRaised = player.currentBet > bb;
+    const isFacingFirstRaise = isPreflop
+      && gameState.bettingRound.lastAggressorId !== null
+      && gameState.bettingRound.lastAggressorId !== player.id
+      && !playerPreviouslyRaised;
+
     let actionResult;
     if (!player.isHuman && player.aiProfile) {
       // AI player: use selectAIAction with per-hand PRNG.
@@ -337,20 +356,15 @@ async function runBettingRound(
     applyAction(bettingPlayer, actionResult, gameState.bettingRound);
 
     // Track preflop aggressor
-    const street = gameState.bettingRound.street;
     if (street === 'PREFLOP' && setPreflopAggressor !== null) {
       if (actionResult.type === 'RAISE' || actionResult.type === 'BET') {
         setPreflopAggressor(player.id);
       }
     }
 
-    // Track stats after PLAYER_ACTION
-    const isPreflop = street === 'PREFLOP';
+    // Track stats
     const isBlind = false; // blind posting is separate, not tracked here
     const isRaise = actionResult.type === 'RAISE' || actionResult.type === 'BET';
-    const isFacingFirstRaise = isPreflop
-      && gameState.bettingRound.lastAggressorId !== null
-      && gameState.bettingRound.lastAggressorId !== player.id;
 
     const isAggressor = player.id === preflopAggressor;
     // C-bet opportunity: aggressor first action on flop, no prior bet

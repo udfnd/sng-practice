@@ -169,11 +169,16 @@ function situationC(percentile: number, ctx: PreflopContext, rng: () => number):
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
 
+  // callingCutoff: top vpip% of hands call or 3-bet when facing a raise.
+  // threeBetCutoff: top threeBetFreq% of all hands is a 3-bet (raw percentile threshold).
+  // The raw threshold is higher than the target 3-bet% because push/fold mode adds many
+  // facing-raise opportunities to the denominator without generating 3-bets, diluting
+  // the measured stat. The preset threeBetFreq accounts for this dilution effect.
+  let callingCutoff = clamp01(profile.vpip * adjust);
   let threeBetCutoff = clamp01(Math.min(
     profile.threeBetFreq * adjust,
-    profile.vpip * adjust,
+    callingCutoff,
   ));
-  let callingCutoff = clamp01(profile.vpip * adjust);
 
   // ICM tightening in SitC: if bubble factor > 1.2, reduce calling/3-bet cutoffs
   const bubbleFactor = getICMBubbleFactor(ctx);
@@ -242,6 +247,8 @@ function situationE(percentile: number, ctx: PreflopContext, rng: () => number):
   const BB_DEFENSE_BONUS = 1.3;
 
   let bbDefenseCutoff = clamp01(profile.bbDefenseBase * adjust * BB_DEFENSE_BONUS);
+  // threeBetCutoff: same raw-threshold approach as SitC; threeBetFreq is a percentile cutoff
+  // that accounts for push/fold dilution producing the measured target after dilution.
   let threeBetCutoff = clamp01(Math.min(
     profile.threeBetFreq * adjust,
     bbDefenseCutoff,
@@ -276,11 +283,21 @@ function situationE(percentile: number, ctx: PreflopContext, rng: () => number):
 function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => number): PreflopDecision {
   const { chips, currentBet, profile } = ctx;
 
-  // Linear baseline (original formula) — used when pushFoldAccuracy = 0
-  // At 1BB: ~65%, at 3BB: ~45%, at 5BB: ~30%, at 8BB: ~18%, at 10BB: ~12%
-  const baseline = clamp01(ctx.effectiveStackBB <= 1
+  // Style-aware open-push threshold anchored to PFR (aggression).
+  // Reference PFR = 0.10. Multiplier scales open-push range by preset aggression.
+  // This applies ONLY for open-pushes (no prior raise). Callers like Station get floor=1.0
+  // so they push Nash-tight; their VPIP comes from calling (see vpipCallFactor below).
+  const REFERENCE_PFR = 0.10;
+  const styleMultiplier = Math.max(1.0, profile.pfr / REFERENCE_PFR);
+
+  // Generic linear baseline: At 1BB ~65%, at 10BB ~12%
+  const rawBaseline = clamp01(ctx.effectiveStackBB <= 1
     ? 0.65
     : 0.65 - (ctx.effectiveStackBB - 1) * 0.06);
+
+  // Profile-scaled baseline: loose presets push wider than raw formula.
+  // Tight presets keep raw baseline (styleMultiplier floored at 1.0).
+  const baseline = clamp01(rawBaseline * styleMultiplier);
 
   // Nash table lookup — used when pushFoldAccuracy = 1
   // playersToAct: approximate from activePlayers (pusher acts, rest to act)
@@ -296,9 +313,12 @@ function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => n
     hasAnte,
   );
 
-  // Interpolate between baseline (accuracy=0) and Nash (accuracy=1)
+  // Loose presets push wider than Nash; tight presets keep Nash range (floored at 1.0).
+  const scaledNashRange = clamp01(nashPushRange * styleMultiplier);
+
+  // Interpolate between style-scaled baseline (accuracy=0) and style-scaled Nash (accuracy=1)
   const basePushThreshold = clamp01(
-    baseline * (1 - profile.pushFoldAccuracy) + nashPushRange * profile.pushFoldAccuracy,
+    baseline * (1 - profile.pushFoldAccuracy) + scaledNashRange * profile.pushFoldAccuracy,
   );
 
   // Apply ICM adjustment if context is available
@@ -351,31 +371,49 @@ function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => n
     }
   }
 
-  if (percentile <= pushThreshold) {
-    return { action: 'RAISE', amount: chips + currentBet, situation: 'UNOPENED' }; // All-in (raiseTo = total committed)
-  }
-
-  // If facing a bet above BB, tighter call range using Nash call tables
+  // If facing a raise (someone bet above BB), handle call/fold/shove separately.
+  // When facing a raise in push/fold mode, a short-stack player can:
+  //   1. Go all-in (shove over the raise — a 3-bet, but only with premium hands)
+  //   2. Call (if stack is small enough relative to the raise)
+  //   3. Fold
   if (ctx.facingBet > ctx.bb) {
     const pushSizeBB = ctx.facingBet / ctx.bb;
-    // potOdds = (pot + facingBet) / (facingBet - currentBet)
-    // Approximate pot: facingBet is the total bet facing us; pot includes dead money
     const callAmount = Math.max(ctx.facingBet - currentBet, 1);
-    const potTotal = ctx.facingBet + currentBet; // approximate pot already in
+    const potTotal = ctx.facingBet + currentBet;
     const potOdds = potTotal / callAmount;
     const nashCallRange = getNashCallRange(ctx.effectiveStackBB, pushSizeBB, potOdds);
 
-    // Baseline call range (original formula)
+    // Shove-over-raise (3-bet jam): only with very premium hands, not the full push range.
+    // Use Nash call range as the re-raise threshold — tighter than open-push threshold.
+    // This prevents inflated 3-bet counts from push/fold mode.
+    if (percentile <= nashCallRange * 0.6) {
+      // Premium hand: shove over the raise (e.g., AA/KK/AKs in very short stack)
+      return { action: 'RAISE', amount: chips + currentBet, situation: 'FACING_RAISE' };
+    }
+
+    // VPIP-based call widening: "calling stations" (high vpip, low pfr) call wider in
+    // push/fold mode. vpipCallFactor = vpip/pfr; higher ratio = more caller vs aggressor.
+    // Station (45%/8%=5.63→4.0 cap): wide calls. TAG (19%/16%=1.19): minimal widening.
+    const vpipCallFactor = profile.pfr > 0 ? Math.min(profile.vpip / profile.pfr, 4.0) : 1.0;
     const baselineCallRange = baseline * 0.6;
-    // Interpolate between baseline and Nash
-    const callThreshold = clamp01(
+    const nashCallThreshold = clamp01(
       baselineCallRange * (1 - profile.pushFoldAccuracy) + nashCallRange * profile.pushFoldAccuracy,
     );
+    // Blend from Nash-call threshold toward vpip-based wide call as vpipCallFactor grows.
+    // At factor=1.0 (pure aggressor), use Nash call. At factor=4.0 (extreme caller), use vpip-based.
+    const maxCallRange = clamp01(profile.vpip * 0.8); // widest possible call range for this preset
+    const blendFactor = clamp01((vpipCallFactor - 1.0) / 3.0); // 0 at factor=1, 1 at factor=4
+    const callThreshold = clamp01(nashCallThreshold * (1 - blendFactor) + maxCallRange * blendFactor);
 
     if (percentile <= callThreshold) {
       return { action: 'CALL', amount: Math.min(callAmount, chips), situation: 'FACING_RAISE' };
     }
     return { action: 'FOLD', amount: 0, situation: 'FACING_RAISE' };
+  }
+
+  // Not facing a raise: decide whether to push or fold.
+  if (percentile <= pushThreshold) {
+    return { action: 'RAISE', amount: chips + currentBet, situation: 'UNOPENED' }; // All-in open push
   }
 
   // BB gets a free check in an unopened pot (no raise above BB).
