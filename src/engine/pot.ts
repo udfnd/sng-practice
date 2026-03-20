@@ -17,6 +17,8 @@ export interface PotPlayer {
 export interface CollectResult {
   mainPot: number;
   sidePots: SidePot[];
+  /** Player IDs eligible for the main pot (tracked when all-ins create side pots) */
+  mainPotEligibleIds: string[];
 }
 
 /**
@@ -79,16 +81,18 @@ export function collectBets(
   const activeBettors = players.filter((p) => p.currentBet > 0);
 
   if (activeBettors.length === 0) {
-    return { mainPot: existingMainPot, sidePots: [...existingSidePots] };
+    return { mainPot: existingMainPot, sidePots: [...existingSidePots], mainPotEligibleIds: [] };
   }
 
   let mainPot = existingMainPot;
   const sidePots = [...existingSidePots];
+  let mainPotEligibleIds: string[] = [];
 
   if (boundaries.length === 0) {
     // No all-ins: everything goes to main pot
     const totalBets = activeBettors.reduce((sum, p) => sum + p.currentBet, 0);
     mainPot += totalBets;
+    mainPotEligibleIds = activeBettors.filter((p) => !p.isFolded).map((p) => p.id);
   } else {
     // Process each boundary level to create pots
     let prevLevel = 0;
@@ -115,7 +119,8 @@ export function collectBets(
         if (prevLevel === 0) {
           // First level goes to main pot
           mainPot += potAmount;
-          // Update main pot eligibility: merge with existing eligible or set new
+          // Track who is eligible for the main pot
+          mainPotEligibleIds = eligible;
         } else {
           sidePots.push({ amount: potAmount, eligiblePlayerIds: eligible });
         }
@@ -152,7 +157,7 @@ export function collectBets(
     p.currentBet = 0;
   }
 
-  return { mainPot, sidePots };
+  return { mainPot, sidePots, mainPotEligibleIds };
 }
 
 /**

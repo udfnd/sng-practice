@@ -258,15 +258,17 @@ export function handleFoldWin(state: GameState): string {
     isAllIn: p.isAllIn,
   }));
 
-  // Calculate uncalled bet before collecting
-  const activeBets = state.players
-    .filter((p) => p.isActive && !p.isFolded)
-    .map((p) => p.currentBet)
-    .sort((a, b) => b - a);
+  // Calculate uncalled bet before collecting.
+  // The second-highest bet must include folded players' currentBets, because folded
+  // players' bets are still in currentBet and will be collected into the pot.
+  // Only the winner (non-folded) can have an uncalled portion above the highest
+  // matched bet among all other active players (folded or not).
+  const winnerCurrentBet = winner.currentBet;
+  const secondHighestBet = state.players
+    .filter((p) => p.isActive && p.id !== winner.id)
+    .reduce((max, p) => Math.max(max, p.currentBet), 0);
 
-  const uncalledAmount = activeBets.length >= 1
-    ? calcUncalledBet(activeBets[0]!, activeBets[1] ?? 0)
-    : 0;
+  const uncalledAmount = calcUncalledBet(winnerCurrentBet, secondHighestBet);
 
   // Return uncalled bet
   if (uncalledAmount > 0) {
