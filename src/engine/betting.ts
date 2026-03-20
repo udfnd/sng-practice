@@ -24,6 +24,7 @@ export interface ActionResult {
 /**
  * Create a fresh BettingRoundState for a new street.
  */
+// @MX:ANCHOR fan_in=3 | Fresh betting round for new street — used by state machine for FLOP/TURN/RIVER
 export function createBettingRound(street: Street, bb: number): BettingRoundState {
   return {
     street,
@@ -55,6 +56,7 @@ export function createPreflopBettingRound(
  * Validate and compute the result of a player's action.
  * Returns the resolved action or throws on illegal action.
  */
+// @MX:ANCHOR fan_in=3 | Action validation and resolution — entry point for all player actions
 export function resolveAction(
   player: BettingPlayer,
   actionType: ActionType,
@@ -156,6 +158,7 @@ function resolveRaise(
  * Apply an action result to the betting round state.
  * Updates currentBet, lastFullRaiseSize, actedPlayerIds, etc.
  */
+// @MX:ANCHOR fan_in=3 | Apply resolved action to player and betting state — mutates both
 export function applyAction(
   player: BettingPlayer,
   result: ActionResult,
@@ -210,6 +213,7 @@ export function applyAction(
  * Re-open occurs when: total increase the player faces (currentBet - playerLastFacedBet)
  * is >= lastFullRaiseSize.
  */
+// @MX:NOTE | Cumulative re-open: total increase facing >= lastFullRaiseSize triggers re-action
 export function hasReopen(
   playerId: string,
   state: BettingRoundState,
@@ -281,6 +285,7 @@ export function isAllInRunout(players: BettingPlayer[]): boolean {
  *
  * @returns Array of player IDs in action order
  */
+// @MX:NOTE | HU: SB(dealer) first preflop, BB(non-dealer) first postflop
 export function getHUActionOrder(
   sbPlayerId: string,
   bbPlayerId: string,

@@ -60,6 +60,7 @@ export interface EvaluatedHand {
  * Evaluate a 7-card hand (2 hole + 5 community) and return the best 5-card hand.
  * Checks all C(7,5) = 21 combinations.
  */
+// @MX:ANCHOR fan_in=4 | Core 7-card hand evaluator — used by showdown, AI classifier, postflop
 export function evaluate7(cards: Card[]): EvaluatedHand {
   if (cards.length < 5 || cards.length > 7) {
     throw new Error(`Expected 5–7 cards, got ${cards.length}`);
@@ -86,6 +87,7 @@ export function evaluate7(cards: Card[]): EvaluatedHand {
  * Compare two evaluated hands.
  * Returns: -1 if a wins, 0 if tie, 1 if b wins.
  */
+// @MX:ANCHOR fan_in=3 | Hand comparison for winner determination — used in showdown and pot distribution
 export function compareHands(a: EvaluatedHand, b: EvaluatedHand): -1 | 0 | 1 {
   if (a.rank > b.rank) return -1;
   if (a.rank < b.rank) return 1;

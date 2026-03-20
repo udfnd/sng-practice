@@ -33,6 +33,7 @@ const POSITION_MAP: Record<number, PositionGroup[]> = {
  * @param buttonSeat The dealer/button seat index
  * @returns Position group for range table lookup
  */
+// @MX:ANCHOR fan_in=3 | Position lookup from active seats — drives range table selection for AI
 export function getPositionGroup(
   activeSeats: number[],
   playerSeat: number,

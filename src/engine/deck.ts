@@ -13,6 +13,7 @@ export interface Deck {
  * Create and shuffle a new 52-card deck using seeded PRNG.
  * If no seed is provided, a random seed is generated.
  */
+// @MX:ANCHOR fan_in=3 | Async deck creation with seeded PRNG shuffle — determinism critical
 export async function createDeck(seed?: string): Promise<Deck> {
   const actualSeed = seed ?? generateRandomSeed();
   const state = await seedFromString(actualSeed);
@@ -50,6 +51,7 @@ export function dealOne(deck: Deck): Card {
 /**
  * Deal multiple cards from the deck.
  */
+// @MX:ANCHOR fan_in=3 | Multi-card dealing — used for hole cards (2) and community cards (3/1/1)
 export function dealMany(deck: Deck, count: number): Card[] {
   if (deck.cards.length < count) {
     throw new Error(`Not enough cards: need ${count}, have ${deck.cards.length}.`);

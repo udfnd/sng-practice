@@ -13,6 +13,7 @@ let sequenceCounter = 0;
 /**
  * Reset sequence counter for a new hand.
  */
+// @MX:NOTE | Call at hand start to reset per-hand event sequence counter
 export function resetSequence(): void {
   sequenceCounter = 0;
 }

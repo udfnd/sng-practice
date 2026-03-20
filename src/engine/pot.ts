@@ -31,6 +31,7 @@ export interface PotPayout {
  * Assert the 3-bucket chip conservation invariant.
  * sum(player.chips) + sum(player.currentBet) + mainPot + sum(sidePots) === totalChips
  */
+// @MX:ANCHOR fan_in=3 | 3-bucket chip conservation check — stacks+bets+pots===totalChips
 export function assertChipInvariant(
   players: PotPlayer[],
   mainPot: number,
@@ -59,6 +60,7 @@ export function assertChipInvariant(
  * @param existingSidePots Current side pots
  * @returns Updated pot state
  */
+// @MX:ANCHOR fan_in=3 | Street-end bet collection with side pot creation — called by state machine transitions
 export function collectBets(
   players: PotPlayer[],
   existingMainPot: number,

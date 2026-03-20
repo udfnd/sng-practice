@@ -130,6 +130,7 @@ export function eliminatePlayer(
  * Higher chips at hand start = better rank.
  * Equal chips = same rank (tie), split prize.
  */
+// @MX:WARN @MX:REASON="tie-grouping with payout split, O(n) position assignment" | Simultaneous elimination with chip-based tiebreak
 export function eliminateSimultaneous(
   tournament: TournamentState,
   players: { playerId: string; chipsAtHandStart: number }[],

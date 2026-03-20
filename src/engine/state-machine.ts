@@ -191,6 +191,7 @@ export function transitionToPreflop(state: GameState): void {
  * Transition to next street (FLOP, TURN, RIVER).
  * Deals community cards and starts new betting round.
  */
+// @MX:WARN @MX:REASON="5+ mutations in sequence: collect bets, sync state, deal cards, reset round" | Multi-phase street transition
 export function transitionToNextStreet(
   state: GameState,
   deck: Deck,
@@ -239,6 +240,7 @@ export function transitionToNextStreet(
  * Handle fold-win: all but one player folded.
  * collectBets → uncalled return → award pot → HAND_COMPLETE
  */
+// @MX:WARN @MX:REASON="collect+uncalled+award in one path, complex bet sync" | Fold-win fast path with multi-step pot resolution
 export function handleFoldWin(state: GameState): string {
   const nonFolded = state.players.filter((p) => p.isActive && !p.isFolded);
   if (nonFolded.length !== 1) {

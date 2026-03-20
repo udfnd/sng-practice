@@ -7,6 +7,7 @@ const SUIT_INDEX: Record<Suit, number> = { spades: 0, hearts: 1, diamonds: 2, cl
  * Encode a card as a single integer: suit_index * 13 + rank_index.
  * rank_index is 0-based: 0 = 2, 1 = 3, ..., 12 = Ace.
  */
+// @MX:ANCHOR fan_in=4 | Card encoding (suit*13+rank) — foundation for all card operations
 export function toEncoded(suit: Suit, rank: DisplayRank): number {
   const suitIdx = SUIT_INDEX[suit];
   const rankIdx = rank - 2; // DisplayRank 2–14 → index 0–12
@@ -16,6 +17,7 @@ export function toEncoded(suit: Suit, rank: DisplayRank): number {
 /**
  * Decode an encoded card integer back to a Card object.
  */
+// @MX:ANCHOR fan_in=5 | Card decoding — used by deck, evaluator, tests; inverse of toEncoded
 export function fromEncoded(encoded: number): Card {
   if (encoded < 0 || encoded > 51 || !Number.isInteger(encoded)) {
     throw new RangeError(`Invalid encoded card: ${encoded}. Must be integer 0–51.`);

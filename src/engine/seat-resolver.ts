@@ -19,6 +19,7 @@ export interface SeatAssignment {
  * @param previousButtonSeat Button seat from previous hand (-1 for first hand)
  * @returns Seat assignment for this hand
  */
+// @MX:NOTE | Moving-button model: no dead button, BTN/SB/BB always on active players
 export function resolveSeats(
   activeSeats: number[],
   previousButtonSeat: number,
@@ -86,6 +87,7 @@ function nextSeatClockwise(sortedSeats: number[], fromSeat: number): number {
  * @param previousBBSeat BB seat from the hand where elimination occurred
  * @param allSeatsClockwise All seats in clockwise order (for finding "next")
  */
+// @MX:NOTE | 3→2 HU transition: prev BB clockwise next surviving = new BB
 export function resolveHUTransition(
   survivingSeats: number[],
   previousBBSeat: number,

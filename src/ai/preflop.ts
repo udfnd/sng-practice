@@ -59,6 +59,7 @@ export interface PreflopContext {
 /**
  * Make a preflop decision using the 5-situation state machine.
  */
+// @MX:WARN @MX:REASON="5-situation state machine with Math.random() for bluff decisions" | Main preflop routing — situation A-E
 export function makePreflopDecision(ctx: PreflopContext): PreflopDecision {
   const rawPercentile = getHandPercentile(ctx.highRank, ctx.lowRank, ctx.suited, ctx.position);
   const percentile = applyPositionAwareness(rawPercentile, ctx.position, ctx.profile.positionAwareness);

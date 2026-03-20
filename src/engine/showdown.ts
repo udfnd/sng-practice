@@ -22,6 +22,7 @@ export interface ShowdownResult {
  * 3. If no aggressor (check-through): first-to-act reveals first
  * 4. AI always shows (learning UX exception)
  */
+// @MX:WARN @MX:REASON="3-level sort: all-in > aggressor > action order" | TDA-compliant reveal ordering
 export function getShowdownOrder(
   players: Player[],
   communityCards: Card[],
