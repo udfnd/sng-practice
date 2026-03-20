@@ -1,6 +1,8 @@
 import type { AIProfile, ActionType } from '@/types';
 import type { PositionGroup } from './position';
 import { getHandPercentile, getHandBaselinePercentile } from './hand-ranges';
+import { computeBubbleFactor, icmAdjustedThreshold } from './icm';
+import { getNashPushRange, getNashCallRange } from './nash-tables';
 
 /**
  * Preflop decision result.
@@ -54,6 +56,14 @@ export interface PreflopContext {
   activePlayers: number;
   /** Effective stack in BB */
   effectiveStackBB: number;
+  /** ICM context (optional for backward compat) */
+  allStacks?: number[];
+  /** Payout amounts in descending order (optional) */
+  payoutAmounts?: number[];
+  /** Index of this player in allStacks array (optional) */
+  playerStackIndex?: number;
+  /** Whether antes are present in the current blind level (optional, default false) */
+  hasAnte?: boolean;
 }
 
 /**
@@ -159,11 +169,19 @@ function situationC(percentile: number, ctx: PreflopContext, rng: () => number):
   const { profile, facingBet, chips, currentBet, bb } = ctx;
   const adjust = facingRaiseAdjust(facingBet, bb);
 
-  const threeBetCutoff = clamp01(Math.min(
+  let threeBetCutoff = clamp01(Math.min(
     profile.threeBetFreq * adjust,
     profile.vpip * adjust,
   ));
-  const callingCutoff = clamp01(profile.vpip * adjust);
+  let callingCutoff = clamp01(profile.vpip * adjust);
+
+  // ICM tightening in SitC: if bubble factor > 1.2, reduce calling/3-bet cutoffs
+  const bubbleFactor = getICMBubbleFactor(ctx);
+  if (bubbleFactor > 1.2) {
+    const icmFactor = icmCutoffFactor(bubbleFactor, profile.icmAwareness, profile.bubbleTightness);
+    threeBetCutoff = clamp01(threeBetCutoff * icmFactor);
+    callingCutoff = clamp01(callingCutoff * icmFactor);
+  }
 
   if (percentile <= threeBetCutoff) {
     // 3-bet
@@ -195,9 +213,19 @@ function situationD(percentile: number, ctx: PreflopContext, rng: () => number):
     return { action: 'RAISE', amount: size, situation: 'FACING_3BET' };
   }
 
+  // ICM tightening in SitD: increase fold-to-3-bet when bubble factor > 1.2
+  let effectiveFoldTo3Bet = profile.foldTo3Bet;
+  const bubbleFactor = getICMBubbleFactor(ctx);
+  if (bubbleFactor > 1.2) {
+    // Invert icmCutoffFactor to increase fold frequency (tighter = higher fold rate)
+    const icmFactor = icmCutoffFactor(bubbleFactor, profile.icmAwareness, profile.bubbleTightness);
+    // icmFactor < 1.0 means tighter, but foldTo3Bet increases (we fold more)
+    effectiveFoldTo3Bet = clamp01(profile.foldTo3Bet / icmFactor);
+  }
+
   // Step 2: For hands outside 4-bet range: fold or call
   const randVal = pseudoRandom(percentile);
-  if (randVal < profile.foldTo3Bet) {
+  if (randVal < effectiveFoldTo3Bet) {
     return { action: 'FOLD', amount: 0, situation: 'FACING_3BET' };
   }
 
@@ -213,11 +241,19 @@ function situationE(percentile: number, ctx: PreflopContext, rng: () => number):
   const adjust = facingRaiseAdjust(facingBet, bb);
   const BB_DEFENSE_BONUS = 1.3;
 
-  const bbDefenseCutoff = clamp01(profile.bbDefenseBase * adjust * BB_DEFENSE_BONUS);
-  const threeBetCutoff = clamp01(Math.min(
+  let bbDefenseCutoff = clamp01(profile.bbDefenseBase * adjust * BB_DEFENSE_BONUS);
+  let threeBetCutoff = clamp01(Math.min(
     profile.threeBetFreq * adjust,
     bbDefenseCutoff,
   ));
+
+  // ICM tightening in SitE: reduce BB defense cutoff when bubble factor > 1.2
+  const bubbleFactor = getICMBubbleFactor(ctx);
+  if (bubbleFactor > 1.2) {
+    const icmFactor = icmCutoffFactor(bubbleFactor, profile.icmAwareness, profile.bubbleTightness);
+    bbDefenseCutoff = clamp01(bbDefenseCutoff * icmFactor);
+    threeBetCutoff = clamp01(threeBetCutoff * icmFactor);
+  }
 
   if (percentile <= threeBetCutoff) {
     // 3-bet from BB
@@ -238,23 +274,106 @@ function situationE(percentile: number, ctx: PreflopContext, rng: () => number):
  * Push/fold mode for ≤ 10BB stacks.
  */
 function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => number): PreflopDecision {
-  const { chips, currentBet } = ctx;
-  // Push threshold based on effective stack (Nash-approximated ranges)
+  const { chips, currentBet, profile } = ctx;
+
+  // Linear baseline (original formula) — used when pushFoldAccuracy = 0
   // At 1BB: ~65%, at 3BB: ~45%, at 5BB: ~30%, at 8BB: ~18%, at 10BB: ~12%
-  const pushThreshold = clamp01(ctx.effectiveStackBB <= 1
+  const baseline = clamp01(ctx.effectiveStackBB <= 1
     ? 0.65
     : 0.65 - (ctx.effectiveStackBB - 1) * 0.06);
+
+  // Nash table lookup — used when pushFoldAccuracy = 1
+  // playersToAct: approximate from activePlayers (pusher acts, rest to act)
+  const playersToAct = Math.max(0, ctx.activePlayers - 1);
+  // Ante detection: blind level ante > 0 indicates antes are in play
+  // PreflopContext doesn't carry blindLevel directly; approximate from allStacks presence
+  // A more precise ante check can be done in action-selector when building context.
+  const hasAnte = ctx.hasAnte ?? false;
+  const nashPushRange = getNashPushRange(
+    ctx.effectiveStackBB,
+    ctx.position,
+    playersToAct,
+    hasAnte,
+  );
+
+  // Interpolate between baseline (accuracy=0) and Nash (accuracy=1)
+  const basePushThreshold = clamp01(
+    baseline * (1 - profile.pushFoldAccuracy) + nashPushRange * profile.pushFoldAccuracy,
+  );
+
+  // Apply ICM adjustment if context is available
+  let pushThreshold = basePushThreshold;
+  if (ctx.allStacks && ctx.payoutAmounts && ctx.playerStackIndex !== undefined) {
+    const allStacks = ctx.allStacks;
+    const payouts = ctx.payoutAmounts;
+    const playerIdx = ctx.playerStackIndex;
+
+    // Find a suitable opponent index (e.g., player with most chips)
+    let opponentIdx = 0;
+    let maxStack = 0;
+    for (let i = 0; i < allStacks.length; i++) {
+      if (i !== playerIdx && allStacks[i] > maxStack) {
+        maxStack = allStacks[i];
+        opponentIdx = i;
+      }
+    }
+
+    const effectiveStack = Math.min(allStacks[playerIdx], allStacks[opponentIdx]);
+    const rawBF = computeBubbleFactor(allStacks, payouts, playerIdx, opponentIdx, effectiveStack);
+
+    // Apply bubbleTightness to scale bubble factor effect
+    const effectiveBF = 1 + (rawBF - 1) * profile.bubbleTightness;
+
+    // Apply icmAwareness: interpolate between base and ICM-adjusted
+    pushThreshold = icmAdjustedThreshold(basePushThreshold, effectiveBF, profile.icmAwareness, profile.bubbleTightness);
+
+    // Chip leader loosening: if player has 30%+ more chips than others
+    // and a short stack has BF > 1.5, chip leaders can push wider
+    if (allStacks[playerIdx] > 0) {
+      const avgOthers = allStacks
+        .filter((_, i) => i !== playerIdx)
+        .reduce((sum, s) => sum + s, 0) / (allStacks.length - 1);
+
+      if (allStacks[playerIdx] > avgOthers * 1.3) {
+        // Check if there's a short stack with high bubble factor
+        let maxOtherBF = 0;
+        for (let i = 0; i < allStacks.length; i++) {
+          if (i !== playerIdx && allStacks[i] > 0) {
+            const otherBF = computeBubbleFactor(allStacks, payouts, i, playerIdx, Math.min(allStacks[i], allStacks[playerIdx]));
+            maxOtherBF = Math.max(maxOtherBF, otherBF);
+          }
+        }
+        if (maxOtherBF > 1.5) {
+          // Chip leader can push 15% wider
+          pushThreshold = clamp01(pushThreshold * 1.15);
+        }
+      }
+    }
+  }
 
   if (percentile <= pushThreshold) {
     return { action: 'RAISE', amount: chips + currentBet, situation: 'UNOPENED' }; // All-in (raiseTo = total committed)
   }
 
-  // If facing a bet above BB, tighter call range
+  // If facing a bet above BB, tighter call range using Nash call tables
   if (ctx.facingBet > ctx.bb) {
-    const callThreshold = pushThreshold * 0.6;
+    const pushSizeBB = ctx.facingBet / ctx.bb;
+    // potOdds = (pot + facingBet) / (facingBet - currentBet)
+    // Approximate pot: facingBet is the total bet facing us; pot includes dead money
+    const callAmount = Math.max(ctx.facingBet - currentBet, 1);
+    const potTotal = ctx.facingBet + currentBet; // approximate pot already in
+    const potOdds = potTotal / callAmount;
+    const nashCallRange = getNashCallRange(ctx.effectiveStackBB, pushSizeBB, potOdds);
+
+    // Baseline call range (original formula)
+    const baselineCallRange = baseline * 0.6;
+    // Interpolate between baseline and Nash
+    const callThreshold = clamp01(
+      baselineCallRange * (1 - profile.pushFoldAccuracy) + nashCallRange * profile.pushFoldAccuracy,
+    );
+
     if (percentile <= callThreshold) {
-      const callAmount = Math.min(ctx.facingBet - currentBet, chips);
-      return { action: 'CALL', amount: callAmount, situation: 'FACING_RAISE' };
+      return { action: 'CALL', amount: Math.min(callAmount, chips), situation: 'FACING_RAISE' };
     }
     return { action: 'FOLD', amount: 0, situation: 'FACING_RAISE' };
   }
@@ -307,6 +426,48 @@ function compute4BetSize(
   }
 
   return Math.round(Math.min(size, chips));
+}
+
+// ========== ICM Helpers ==========
+
+/**
+ * Compute the cutoff multiplier for ICM tightening.
+ * Returns a value <= 1.0 that scales down action thresholds.
+ * Returns 1.0 when there is no ICM pressure (bubbleFactor = 1.0).
+ */
+function icmCutoffFactor(bubbleFactor: number, icmAwareness: number, bubbleTightness: number): number {
+  if (bubbleFactor <= 1.0 || icmAwareness <= 0) return 1.0;
+  const icmMultiplier = 1 / (1 + (bubbleFactor - 1) * bubbleTightness);
+  return 1 - icmAwareness + icmAwareness * icmMultiplier;
+}
+
+/**
+ * Compute the ICM bubble factor for the current player in the given context.
+ * Returns 1.0 if ICM context is not available.
+ */
+function getICMBubbleFactor(ctx: PreflopContext): number {
+  if (!ctx.allStacks || !ctx.payoutAmounts || ctx.playerStackIndex === undefined) {
+    return 1.0;
+  }
+
+  const allStacks = ctx.allStacks;
+  const payouts = ctx.payoutAmounts;
+  const playerIdx = ctx.playerStackIndex;
+
+  // Find opponent with most chips (most likely opponent)
+  let opponentIdx = 0;
+  let maxStack = 0;
+  for (let i = 0; i < allStacks.length; i++) {
+    if (i !== playerIdx && allStacks[i] > maxStack) {
+      maxStack = allStacks[i];
+      opponentIdx = i;
+    }
+  }
+
+  const effectiveStack = Math.min(allStacks[playerIdx], allStacks[opponentIdx]);
+  if (effectiveStack <= 0) return 1.0;
+
+  return computeBubbleFactor(allStacks, payouts, playerIdx, opponentIdx, effectiveStack);
 }
 
 // ========== Utility ==========

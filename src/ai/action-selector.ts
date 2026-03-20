@@ -4,6 +4,8 @@ import { makePostflopDecision, type PostflopContext } from './postflop';
 import { getPositionGroup } from './position';
 import { resolveAction, type BettingPlayer, type ActionResult } from '@/engine/betting';
 import type { BettingRoundState } from '@/types';
+import { PAYOUT_RATIOS } from '@/engine/tournament';
+import { calculateSPR } from './spr';
 
 /**
  * Top-level AI action selector.
@@ -111,6 +113,26 @@ export function buildPreflopContext(
 
   const profile = player.aiProfile!;
 
+  // ICM context: compute stack sizes and payout amounts for ICM calculations
+  const allStacks = activePlayers.map((p) => p.chips + p.currentBet);
+  const playerStackIndex = activePlayers.findIndex((p) => p.id === player.id);
+
+  // Determine payout amounts from game state or use default top-3 payouts
+  // Check if game state has payoutAmounts attached (from TournamentState)
+  const stateWithPayouts = state as GameState & { payoutAmounts?: number[] };
+  let payoutAmounts: number[] | undefined;
+  if (stateWithPayouts.payoutAmounts) {
+    payoutAmounts = stateWithPayouts.payoutAmounts;
+  } else {
+    // Default: top-3 payout structure scaled by total chips in play
+    const totalChips = allStacks.reduce((sum, s) => sum + s, 0);
+    const ratios = PAYOUT_RATIOS.top3;
+    payoutAmounts = ratios.map((r) => Math.round(r * totalChips));
+  }
+
+  // Ante detection: check if the blind level includes antes
+  const hasAnte = (state.blindLevel.ante ?? 0) > 0;
+
   return {
     profile,
     highRank,
@@ -128,6 +150,10 @@ export function buildPreflopContext(
     isBB,
     activePlayers: activePlayers.length,
     effectiveStackBB,
+    allStacks,
+    payoutAmounts,
+    playerStackIndex: playerStackIndex >= 0 ? playerStackIndex : undefined,
+    hasAnte,
   };
 }
 
@@ -162,6 +188,20 @@ export function buildPostflopContext(
     { encoded: 1, suit: 'spades' as const, rank: 13 as const },
   ];
 
+  // Effective stack: min of player's total stack and max opponent stack
+  const activePlayers = state.players.filter((p) => p.isActive && !p.isFolded);
+  const playerTotalStack = player.chips + player.currentBet;
+  const maxOpponentStack = activePlayers
+    .filter((p) => p.id !== player.id)
+    .reduce((max, p) => Math.max(max, p.chips + p.currentBet), 0);
+  const effectiveStack = Math.min(playerTotalStack, maxOpponentStack > 0 ? maxOpponentStack : playerTotalStack);
+
+  // SPR: effective stack / pot
+  const spr = calculateSPR(effectiveStack, potSize > 0 ? potSize : 1);
+
+  // Opponents: active non-folded players excluding self
+  const opponents = activePlayers.filter((p) => p.id !== player.id).length;
+
   return {
     profile: player.aiProfile!,
     holeCards: holeCards as [typeof holeCards[0], typeof holeCards[1]],
@@ -173,6 +213,8 @@ export function buildPostflopContext(
     potSize,
     chips: player.chips,
     bb,
+    spr,
+    opponents,
   };
 }
 
