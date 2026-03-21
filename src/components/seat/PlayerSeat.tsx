@@ -2,6 +2,7 @@ import { memo } from 'react';
 import type { Player } from '@/types';
 import { PlayingCard } from '@/components/card/PlayingCard';
 import { useGameStore } from '@/store/game-store';
+import { formatAmount } from '@/utils/format-chips';
 
 interface PlayerSeatProps {
   player: Player;
@@ -16,6 +17,8 @@ export const PlayerSeat = memo(function PlayerSeat({
   const isHumanTurn = useGameStore((s) => s.isHumanTurn);
   const sbSeat = useGameStore((s) => s.gameState?.sbSeatIndex ?? -1);
   const bbSeat = useGameStore((s) => s.gameState?.bbSeatIndex ?? -1);
+  const displayMode = useGameStore((s) => s.displayMode);
+  const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
 
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
@@ -108,12 +111,14 @@ export const PlayerSeat = memo(function PlayerSeat({
         >
           {player.name}
         </span>
-        <span className="text-xs text-yellow-400">{player.chips.toLocaleString()}</span>
+        <span className="text-xs text-yellow-400">
+          {formatAmount(player.chips, bb, displayMode)}
+        </span>
 
         {/* Current Bet with slide animation */}
         {player.currentBet > 0 && (
           <span className="text-[10px] text-green-400 transition-all duration-150">
-            {player.currentBet}
+            {formatAmount(player.currentBet, bb, displayMode)}
           </span>
         )}
 

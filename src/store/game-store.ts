@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { GameState, ActionType, TournamentConfig, Standing, TournamentState, GameEvent } from '@/types';
+import type { DisplayMode } from '@/utils/format-chips';
+import { loadDisplayMode, saveDisplayMode } from '@/utils/format-chips';
 import { WorkerManager } from '@/engine/worker-manager';
 import type { WorkerOutMessage } from '@/engine/worker-protocol';
 import { formatEvent } from '@/engine/event-formatter';
@@ -78,6 +80,11 @@ interface GameStore {
   /** Reset all storage data */
   resetAllData: () => Promise<void>;
 
+  /** Current chip display mode */
+  displayMode: DisplayMode;
+  /** Toggle between 'chips' and 'bb' display modes */
+  toggleDisplayMode: () => void;
+
   // Legacy compatibility
   updateGameState: (state: GameState) => void;
   setHumanTurn: (value: boolean) => void;
@@ -102,6 +109,7 @@ const initialState = {
   hasResumableSession: false,
   resumableState: null as TournamentState | null,
   _currentHandEvents: [] as GameEvent[],
+  displayMode: loadDisplayMode() as DisplayMode,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -341,5 +349,13 @@ export const useGameStore = create<GameStore>()(
       }),
 
     reset: () => get().resetGame(),
+
+    toggleDisplayMode: () => {
+      set((draft) => {
+        const next: DisplayMode = draft.displayMode === 'chips' ? 'bb' : 'chips';
+        draft.displayMode = next;
+        saveDisplayMode(next);
+      });
+    },
   })),
 );

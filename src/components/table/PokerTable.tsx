@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import type { Card } from '@/types';
 import { PlayingCard } from '@/components/card/PlayingCard';
+import { useGameStore } from '@/store/game-store';
+import { formatAmount } from '@/utils/format-chips';
 
 interface PokerTableProps {
   communityCards: Card[];
@@ -11,6 +13,9 @@ export const PokerTable = memo(function PokerTable({
   communityCards,
   potAmount,
 }: PokerTableProps) {
+  const displayMode = useGameStore((s) => s.displayMode);
+  const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
+
   return (
     <div className="absolute inset-8 rounded-[50%] bg-felt border-4 border-felt-dark shadow-inner flex flex-col items-center justify-center gap-2">
       {/* Community Cards */}
@@ -36,13 +41,8 @@ export const PokerTable = memo(function PokerTable({
           potAmount > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
       >
-        Pot: {formatChips(potAmount)}
+        Pot: {formatAmount(potAmount, bb, displayMode)}
       </div>
     </div>
   );
 });
-
-function formatChips(amount: number): string {
-  if (amount >= 10000) return `${(amount / 1000).toFixed(1)}K`;
-  return amount.toLocaleString();
-}

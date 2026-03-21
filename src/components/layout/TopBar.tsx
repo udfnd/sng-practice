@@ -11,6 +11,8 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
   const activePlayers = useGameStore(
     (s) => s.gameState?.players.filter((p) => p.isActive).length ?? 0
   );
+  const displayMode = useGameStore((s) => s.displayMode);
+  const toggleDisplayMode = useGameStore((s) => s.toggleDisplayMode);
 
   return (
     <header className="flex items-center justify-between px-3 sm:px-4 py-2 bg-gray-800 border-b border-gray-700 text-sm">
@@ -21,8 +23,23 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
         </span>
         <span className="text-gray-400 text-xs sm:text-sm">Hand #{handNumber}</span>
       </div>
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         <span className="text-gray-400 text-xs sm:text-sm">{activePlayers} players</span>
+
+        {/* BB / Chips display mode toggle */}
+        <button
+          onClick={toggleDisplayMode}
+          className={`flex items-center justify-center min-w-[40px] h-7 px-2 rounded text-xs font-semibold transition-all duration-150 active:scale-95 touch-manipulation ${
+            displayMode === 'bb'
+              ? 'bg-yellow-500 text-black'
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+          }`}
+          aria-label={displayMode === 'bb' ? 'Switch to chip display' : 'Switch to BB display'}
+          title={displayMode === 'bb' ? 'Showing amounts in BB — click to switch to chips' : 'Showing amounts in chips — click to switch to BB'}
+        >
+          {displayMode === 'bb' ? 'BB' : '$'}
+        </button>
+
         {/* Mobile side panel toggle */}
         {onToggleSidePanel && (
           <button
