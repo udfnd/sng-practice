@@ -4,10 +4,11 @@
  */
 
 import type { WorkerInMessage, StartGameMessage, PlayerActionMessage } from './worker-protocol';
-import type { ActionResponse } from './orchestrator';
+import type { ActionResponse, OnRunoutStreetDealt } from './orchestrator';
 import type { ValidActionsResult } from './action-order';
 import type { BettingPlayer } from './betting';
 import { runTournament } from './orchestrator';
+import type { Street } from '@/types';
 import { createTournament } from './tournament';
 import { PRESETS } from '@/ai/presets';
 import type { PresetType, GameEvent, GameState } from '@/types';
@@ -117,6 +118,14 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     await new Promise<void>((resolve) => setTimeout(resolve, AI_ACTION_DELAY_MS));
   };
 
+  // All-in runout delay: flush events and wait between each street deal
+  const RUNOUT_STREET_DELAY_MS = 2000;
+  const onRunoutStreetDealt: OnRunoutStreetDealt = async (_street: Street): Promise<void> => {
+    flushPendingEvents();
+    postStateUpdate(tournament.gameState, true);
+    await new Promise<void>((resolve) => setTimeout(resolve, RUNOUT_STREET_DELAY_MS));
+  };
+
   // Batch events between meaningful checkpoints to avoid flooding main thread
   let pendingEvents: GameEvent[] = [];
 
@@ -150,7 +159,7 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
 
   try {
     console.log('[Worker] Starting runTournament...');
-    await runTournament(tournament, actionProvider, onEvent, onBeforeAIAction);
+    await runTournament(tournament, actionProvider, onEvent, onBeforeAIAction, onRunoutStreetDealt);
 
     // Flush remaining events and send final state.
     // NOTE: runTournament already emits TOURNAMENT_END via onEvent, which is

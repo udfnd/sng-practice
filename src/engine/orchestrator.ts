@@ -90,6 +90,12 @@ export type ActionProvider = (
 export type OnBeforeAIAction = (playerId: string) => Promise<void>;
 
 /**
+ * Optional async callback invoked after dealing community cards during an all-in runout.
+ * Allows the caller (e.g., Web Worker) to add a visual delay between streets.
+ */
+export type OnRunoutStreetDealt = (street: Street) => Promise<void>;
+
+/**
  * Run a single hand from the current tournament state.
  * Mutates tournament.gameState in place.
  *
@@ -102,6 +108,7 @@ export async function runHand(
   tournament: TournamentState,
   getAction: ActionProvider,
   onBeforeAIAction?: OnBeforeAIAction,
+  onRunoutStreetDealt?: OnRunoutStreetDealt,
 ): Promise<GameEvent[]> {
   const events: GameEvent[] = [];
   const { gameState, totalChips } = tournament;
@@ -220,6 +227,11 @@ export async function runHand(
       street === 'FLOP' ? 0 : street === 'TURN' ? 3 : 4,
     );
     events.push(dealCommunityEvent(gameState.handNumber, newCards, street as 'FLOP' | 'TURN' | 'RIVER'));
+
+    // During all-in runout, notify caller so they can add a visual delay
+    if (runout && onRunoutStreetDealt) {
+      await onRunoutStreetDealt(street);
+    }
 
     if (!runout) {
       // Run betting round for this street
@@ -588,6 +600,7 @@ export async function runTournament(
   getAction: ActionProvider,
   onEvent: (event: GameEvent) => void,
   onBeforeAIAction?: OnBeforeAIAction,
+  onRunoutStreetDealt?: OnRunoutStreetDealt,
 ): Promise<Standing[]> {
   const maxHands = 500; // Safety limit (typical SNG: 60-120 hands)
   let handsPlayed = 0;
@@ -603,7 +616,7 @@ export async function runTournament(
     );
 
     // Run a single hand
-    const handEvents = await runHand(tournament, getAction, onBeforeAIAction);
+    const handEvents = await runHand(tournament, getAction, onBeforeAIAction, onRunoutStreetDealt);
 
     // Emit all events
     for (const event of handEvents) {

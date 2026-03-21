@@ -19,6 +19,7 @@ export const PlayerSeat = memo(function PlayerSeat({
   const bbSeat = useGameStore((s) => s.gameState?.bbSeatIndex ?? -1);
   const displayMode = useGameStore((s) => s.displayMode);
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
+  const phase = useGameStore((s) => s.gameState?.phase);
 
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
@@ -89,19 +90,17 @@ export const PlayerSeat = memo(function PlayerSeat({
     <div className="flex flex-col items-center gap-1 transition-all duration-200">
       {/* Hole Cards */}
       <div className="flex gap-0.5" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.6))' }}>
-        {player.holeCards ? (
-          player.isHuman ? (
+        {player.holeCards ? (() => {
+          // Show cards face-up for: human player, showdown/hand_complete (all non-folded), all-in runout
+          const isShowdown = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
+          const showFaceUp = player.isHuman || (isShowdown && !player.isFolded) || (player.isAllIn && !player.isFolded);
+          return (
             <>
-              <PlayingCard card={player.holeCards[0]} size={cardSize} animate />
-              <PlayingCard card={player.holeCards[1]} size={cardSize} animate />
+              <PlayingCard card={player.holeCards[0]} size={cardSize} faceDown={!showFaceUp} animate />
+              <PlayingCard card={player.holeCards[1]} size={cardSize} faceDown={!showFaceUp} animate />
             </>
-          ) : (
-            <>
-              <PlayingCard card={player.holeCards[0]} size={cardSize} faceDown animate />
-              <PlayingCard card={player.holeCards[1]} size={cardSize} faceDown animate />
-            </>
-          )
-        ) : null}
+          );
+        })() : null}
       </div>
 
       {/* Player Info Badge */}
