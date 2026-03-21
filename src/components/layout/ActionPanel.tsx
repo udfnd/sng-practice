@@ -85,15 +85,15 @@ export function ActionPanel() {
   }, [isHumanTurn, canFold, canCheck, canCall, canBetOrRaise, currentRaiseAmt, callAmount, allInConfirm, submitAction, handleBetOrRaise, handleAllIn]);
 
   // Early returns AFTER all hooks
-  if (!isPlaying) return null;
+  if (!isPlaying) return <div className="h-full" />;
 
   if (!isHumanTurn || !humanPlayer || !gameState) {
     return (
       <div
-        className="flex items-center justify-center py-4 text-sm h-16 safe-bottom"
+        className="flex items-center justify-center h-full safe-bottom"
         style={{ color: '#64748b' }}
       >
-        Waiting for action...
+        <span className="text-sm">Waiting for action...</span>
       </div>
     );
   }
@@ -119,7 +119,7 @@ export function ActionPanel() {
   ];
 
   const btnBase =
-    'min-h-14 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-1';
+    'min-h-14 min-w-[90px] px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-1 text-center';
   const presetBtnClass =
     'min-h-10 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 touch-manipulation focus:outline-none';
 

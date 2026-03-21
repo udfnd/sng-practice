@@ -31,11 +31,11 @@ export function TableArea() {
   return (
     <div className="relative w-full flex-1 flex items-center justify-center px-10 sm:px-14 py-2 min-h-0 overflow-hidden">
       <div
-        className="relative w-full max-w-4xl aspect-[16/10] max-h-[calc(100vh-180px)]"
+        className="relative w-full max-w-4xl aspect-[16/10]"
         style={{
           filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
-          /* Keep aspect ratio but shrink if too tall */
-          width: 'min(100%, calc((100vh - 180px) * 16 / 10))',
+          /* Shrink width so height fits: TopBar ~44px + ActionPanel 140px + padding */
+          maxWidth: 'min(100%, calc((100vh - 200px) * 1.6))',
         }}
       >
         <PokerTable communityCards={communityCards} potAmount={totalPot} />

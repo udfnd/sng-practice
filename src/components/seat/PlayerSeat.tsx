@@ -91,9 +91,15 @@ export const PlayerSeat = memo(function PlayerSeat({
       {/* Hole Cards */}
       <div className="flex gap-0.5" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.6))' }}>
         {player.holeCards ? (() => {
-          // Show cards face-up for: human player, showdown/hand_complete (all non-folded), all-in runout
-          const isShowdown = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
-          const showFaceUp = player.isHuman || (isShowdown && !player.isFolded) || (player.isAllIn && !player.isFolded);
+          // Always show face-up for:
+          // 1. Human player (always sees own cards)
+          // 2. Showdown / Hand Complete phase (all non-folded players)
+          // 3. All-in and not folded (early showdown / runout)
+          const isShowdownPhase = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
+          const isInHand = !player.isFolded;
+          const showFaceUp = player.isHuman
+            || (isShowdownPhase && isInHand)
+            || (player.isAllIn && isInHand);
           return (
             <>
               <PlayingCard card={player.holeCards[0]} size={cardSize} faceDown={!showFaceUp} animate />

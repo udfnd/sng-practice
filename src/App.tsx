@@ -86,8 +86,12 @@ export function App() {
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <main className="flex flex-col flex-1 min-h-0">
-          <TableArea />
-          <div className="flex-shrink-0">
+          {/* Table area — takes remaining space, always same position */}
+          <div className="flex-1 min-h-0">
+            <TableArea />
+          </div>
+          {/* Action panel — fixed height slot so table never shifts */}
+          <div className="flex-shrink-0 h-[140px]">
             <ActionPanel />
           </div>
         </main>
