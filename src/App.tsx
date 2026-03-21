@@ -84,10 +84,14 @@ export function App() {
         onToggleSidePanel={() => setSidePanelOpen((v) => !v)}
         sidePanelOpen={sidePanelOpen}
       />
-      <div className="flex flex-1 overflow-hidden">
-        <main className="flex flex-col flex-1 items-center justify-center overflow-hidden">
-          <TableArea />
-          <ActionPanel />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <main className="flex flex-col flex-1 min-h-0 overflow-visible">
+          <div className="flex-1 min-h-0 overflow-visible">
+            <TableArea />
+          </div>
+          <div className="flex-shrink-0">
+            <ActionPanel />
+          </div>
         </main>
         <SidePanel
           mobileOpen={sidePanelOpen}

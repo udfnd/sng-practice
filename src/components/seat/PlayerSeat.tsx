@@ -70,7 +70,7 @@ export const PlayerSeat = memo(function PlayerSeat({
     background: bgColor,
     border: `1.5px solid ${borderColor}`,
     borderRadius: '14px',
-    padding: '7px 10px',
+    padding: '5px 8px',
     position: 'relative' as const,
     boxShadow: glowShadow !== 'none' ? glowShadow : '0 2px 8px rgba(0,0,0,0.5)',
     opacity: player.isFolded ? 0.45 : 1,
@@ -87,7 +87,7 @@ export const PlayerSeat = memo(function PlayerSeat({
   const cardSize = 'md' as const;
 
   return (
-    <div className="flex flex-col items-center gap-1 transition-all duration-200">
+    <div className="flex flex-col items-center gap-0.5 transition-all duration-200">
       {/* Hole Cards */}
       <div className="flex gap-0.5" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.6))' }}>
         {player.holeCards ? (() => {
