@@ -84,14 +84,14 @@ export function App() {
         onToggleSidePanel={() => setSidePanelOpen((v) => !v)}
         sidePanelOpen={sidePanelOpen}
       />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <main className="flex flex-col flex-1 min-h-0">
-          {/* Table area — takes remaining space, always same position */}
+      <div className="flex flex-1 min-h-0">
+        <main className="flex flex-col flex-1 min-w-0">
+          {/* Table — centered, takes all remaining vertical space */}
           <div className="flex-1 min-h-0">
             <TableArea />
           </div>
-          {/* Action panel — fixed height slot so table never shifts */}
-          <div className="flex-shrink-0 h-[140px]">
+          {/* Action panel — fixed height so table position is stable */}
+          <div className="flex-shrink-0 h-[130px]">
             <ActionPanel />
           </div>
         </main>
