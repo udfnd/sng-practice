@@ -3,38 +3,28 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
 /*
- * Poker table layout with 8 seats around an elliptical table.
+ * 8-seat poker table. Seats sit ON the table edge (not outside it).
+ * The table felt fills the entire container, and seats are placed
+ * at positions along the elliptical rim.
  *
- * Architecture:
- * - Outer container fills available space (flex-1 from parent)
- * - Inner "board" div is position:relative, centered, aspect-ratio fixed
- * - Table felt is absolutely positioned in the CENTER of the board (inset 20%/15%)
- * - Seats are absolutely positioned around the BOARD edges (outside the felt)
- *
- * The key insight: the felt is SMALLER than the board container.
- * Seats sit in the gap between felt edge and board edge.
- * Since seats use % of the board (not the felt), they never overlap the felt.
- *
- *          [S4]
- *     [S3]       [S5]
- *   [S2] ╭─────────╮ [S6]
- *         │  FELT   │
- *   [S1] ╰─────────╯ [S7]
- *          [S0]
+ *            [S4]
+ *       [S3]      [S5]
+ *     [S2]          [S6]
+ *       [S1]      [S7]
+ *            [S0]
  */
 
-// Positions as % of the BOARD container (not the felt).
-// Felt occupies roughly 20%-80% horizontally, 18%-82% vertically.
-// Seats are placed OUTSIDE the felt zone.
+// Positions as % of the table container.
+// These follow the ellipse edge so seats sit ON the table rim.
 const SEAT_POSITIONS: { top: string; left: string }[] = [
-  { top: '95%', left: '50%' },   // 0: bottom center (hero)
-  { top: '78%', left: '6%' },    // 1: bottom-left
-  { top: '48%', left: '1%' },    // 2: left
-  { top: '14%', left: '10%' },   // 3: top-left
-  { top: '1%',  left: '50%' },   // 4: top center
-  { top: '14%', left: '90%' },   // 5: top-right
-  { top: '48%', left: '99%' },   // 6: right
-  { top: '78%', left: '94%' },   // 7: bottom-right
+  { top: '96%', left: '50%' },   // 0: bottom center (hero)
+  { top: '80%', left: '10%' },   // 1: bottom-left
+  { top: '50%', left: '2%' },    // 2: left
+  { top: '16%', left: '10%' },   // 3: top-left
+  { top: '2%',  left: '50%' },   // 4: top center
+  { top: '16%', left: '90%' },   // 5: top-right
+  { top: '50%', left: '98%' },   // 6: right
+  { top: '80%', left: '90%' },   // 7: bottom-right
 ];
 
 const EMPTY_PLAYERS: never[] = [];
@@ -50,12 +40,6 @@ export function TableArea() {
 
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 
-  /*
-   * Sizing: the board container fills available width/height but maintains
-   * a 16:9 aspect ratio. It's capped so it fits within:
-   *   width: viewport - SidePanel(240px) - padding
-   *   height: viewport - TopBar(40px) - ActionPanel(120px) - padding
-   */
   return (
     <div
       style={{
@@ -64,35 +48,28 @@ export function TableArea() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '8px 80px',
+        padding: '4px 16px',
         boxSizing: 'border-box',
+        overflow: 'visible',
       }}
     >
-      {/* Board container — holds felt + seats */}
+      {/* Table container — felt + seats are same coordinate space */}
       <div
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '860px',
-          aspectRatio: '16 / 9',
-          /* Constrain height so it doesn't push ActionPanel off screen */
+          maxWidth: '820px',
+          aspectRatio: '2 / 1',
           maxHeight: 'calc(100vh - 210px)',
+          overflow: 'visible',
         }}
       >
-        {/* Table felt — centered, smaller than board */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '18%',
-            bottom: '18%',
-            left: '14%',
-            right: '14%',
-          }}
-        >
+        {/* Table felt — fills entire container */}
+        <div style={{ position: 'absolute', inset: 0 }}>
           <PokerTable communityCards={communityCards} potAmount={totalPot} />
         </div>
 
-        {/* Player seats — positioned around the board edges */}
+        {/* Player seats — ON the table edge */}
         {players.map((player) => {
           const pos = SEAT_POSITIONS[player.seatIndex];
           if (!pos) return null;
