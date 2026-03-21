@@ -187,9 +187,16 @@ export const useGameStore = create<GameStore>()(
             draft._currentHandEvents.push(event);
 
             // Build player name map from current game state
-            const nameMap = new Map<string, string>(
-              (draft.gameState?.players ?? []).map((p) => [p.id, p.name]),
-            );
+            // NOTE: Use plain object to iterate draft players, then create Map OUTSIDE draft access
+            const playersList = draft.gameState?.players;
+            const nameEntries: [string, string][] = [];
+            if (playersList) {
+              for (let i = 0; i < playersList.length; i++) {
+                const p = playersList[i];
+                if (p) nameEntries.push([p.id, p.name]);
+              }
+            }
+            const nameMap = new Map<string, string>(nameEntries);
 
             // Format and add to action log
             const line = formatEvent(event, nameMap);

@@ -23,12 +23,16 @@ const SEAT_POSITIONS = [
   { top: '75%', left: '88%' },   // 7: bottom-right - 315°
 ];
 
+const EMPTY_PLAYERS: never[] = [];
+const EMPTY_CARDS: never[] = [];
+const EMPTY_SIDE_POTS: never[] = [];
+
 export function TableArea() {
-  const players = useGameStore((s) => s.gameState?.players ?? []);
-  const communityCards = useGameStore((s) => s.gameState?.communityCards ?? []);
-  const mainPot = useGameStore((s) => s.gameState?.mainPot ?? 0);
-  const sidePots = useGameStore((s) => s.gameState?.sidePots ?? []);
-  const buttonSeat = useGameStore((s) => s.gameState?.buttonSeatIndex ?? -1);
+  const players = useGameStore((s) => s.gameState?.players) ?? EMPTY_PLAYERS;
+  const communityCards = useGameStore((s) => s.gameState?.communityCards) ?? EMPTY_CARDS;
+  const mainPot = useGameStore((s) => s.gameState?.mainPot) ?? 0;
+  const sidePots = useGameStore((s) => s.gameState?.sidePots) ?? EMPTY_SIDE_POTS;
+  const buttonSeat = useGameStore((s) => s.gameState?.buttonSeatIndex) ?? -1;
 
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 

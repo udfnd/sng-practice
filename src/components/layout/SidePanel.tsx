@@ -25,9 +25,11 @@ interface SidePanelProps {
   onClose?: () => void;
 }
 
+const EMPTY_PLAYERS: never[] = [];
+
 export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
   const actionLog = useGameStore((s) => s.actionLog);
-  const players = useGameStore((s) => s.gameState?.players ?? []);
+  const players = useGameStore((s) => s.gameState?.players) ?? EMPTY_PLAYERS;
   const isPlaying = useGameStore((s) => s.isPlaying);
 
   const logEndRef = useRef<HTMLDivElement>(null);
