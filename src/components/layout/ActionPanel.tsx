@@ -81,9 +81,9 @@ export function ActionPanel() {
 
   // Preset BB sizes (in BB units) for BB mode
   const bbPresets: { label: string; bb: number }[] = [
+    { label: '2 BB', bb: 2 },
     { label: '2.5 BB', bb: 2.5 },
     { label: '3 BB', bb: 3 },
-    { label: '4 BB', bb: 4 },
   ];
 
   return (
