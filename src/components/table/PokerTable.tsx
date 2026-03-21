@@ -17,9 +17,16 @@ export const PokerTable = memo(function PokerTable({
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
 
   return (
-    <div className="absolute inset-8 rounded-[50%] bg-felt border-4 border-felt-dark shadow-inner flex flex-col items-center justify-center gap-2">
+    <div
+      className="absolute inset-8 rounded-[50%] flex flex-col items-center justify-center gap-2"
+      style={{
+        background: 'radial-gradient(ellipse at center, #1a5c2a 0%, #0f3d1a 100%)',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.5), inset 0 2px 4px rgba(0,0,0,0.3)',
+        border: '4px solid #0f3d1a',
+      }}
+    >
       {/* Community Cards */}
-      <div className="flex gap-1 sm:gap-1.5">
+      <div className="flex gap-1.5 sm:gap-2">
         {Array.from({ length: 5 }).map((_, i) => {
           const card = communityCards[i];
           return card ? (
@@ -29,7 +36,11 @@ export const PokerTable = memo(function PokerTable({
           ) : (
             <div
               key={i}
-              className="w-16 h-[90px] rounded border border-felt-dark/50 bg-felt-dark/30 opacity-40"
+              className="w-16 h-[90px] rounded"
+              style={{
+                border: '1px solid rgba(148,163,184,0.2)',
+                background: 'rgba(100,116,139,0.1)',
+              }}
             />
           );
         })}
@@ -37,9 +48,13 @@ export const PokerTable = memo(function PokerTable({
 
       {/* Pot */}
       <div
-        className={`text-white font-bold text-sm bg-black/40 px-3 py-1 rounded-full transition-all duration-300 ${
+        className={`font-bold text-sm px-3 py-1 rounded-full transition-all duration-300 ${
           potAmount > 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
+        style={{
+          background: 'rgba(0,0,0,0.5)',
+          color: '#f1f5f9',
+        }}
       >
         Pot: {formatAmount(potAmount, bb, displayMode)}
       </div>

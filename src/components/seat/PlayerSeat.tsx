@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo } from 'react';
 import type { Player } from '@/types';
 import { PlayingCard } from '@/components/card/PlayingCard';
 import { useGameStore } from '@/store/game-store';
@@ -35,34 +35,47 @@ export const PlayerSeat = memo(function PlayerSeat({
   if (!player.isActive) {
     return (
       <div className="flex flex-col items-center opacity-30 transition-opacity duration-300">
-        <div className="w-20 h-12 rounded bg-gray-700 flex items-center justify-center text-xs text-gray-500">
+        <div
+          className="w-20 h-12 rounded flex items-center justify-center text-xs"
+          style={{ background: '#141b24', color: '#64748b' }}
+        >
           Out
         </div>
       </div>
     );
   }
 
-  const borderColor = isHumanActive
-    ? 'border-blue-400 border-2'
-    : isThinking
-    ? 'border-yellow-400 border-2'
-    : player.isFolded
-    ? 'border-gray-600 opacity-50'
-    : player.isAllIn
-    ? 'border-red-500'
-    : 'border-gray-600';
+  // Border and glow based on state
+  let seatStyle: React.CSSProperties = {
+    background: player.isFolded ? 'rgba(20,27,36,0.4)' : player.isAllIn ? 'rgba(127,29,29,0.4)' : 'rgba(20,27,36,0.6)',
+    border: '1px solid rgba(100,116,139,0.2)',
+    borderRadius: '12px',
+    padding: '8px',
+    position: 'relative' as const,
+  };
 
-  const bgColor = player.isFolded
-    ? 'bg-gray-800'
-    : player.isAllIn
-    ? 'bg-red-900'
-    : 'bg-gray-800';
+  if (isHumanActive) {
+    seatStyle = {
+      ...seatStyle,
+      border: '2px solid #3b82f6',
+      transform: 'scale(1.02)',
+    };
+  } else if (isThinking) {
+    seatStyle = {
+      ...seatStyle,
+      border: '2px solid #eab308',
+      transform: 'scale(1.02)',
+    };
+  } else if (player.isFolded) {
+    seatStyle = { ...seatStyle, opacity: 0.5 };
+  } else if (player.isAllIn) {
+    seatStyle = { ...seatStyle, border: '1px solid #ef4444' };
+  }
 
-  // Active player glow ring
   const activeRingClass = isHumanActive
-    ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-transparent active-player-glow'
+    ? 'active-player-glow'
     : isThinking
-    ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-transparent active-player-glow'
+    ? 'active-player-glow-yellow'
     : '';
 
   const cardSize = 'sm' as const;
@@ -88,52 +101,65 @@ export const PlayerSeat = memo(function PlayerSeat({
 
       {/* Player Info */}
       <div
-        className={`flex flex-col items-center px-3 py-1 rounded border ${bgColor} ${borderColor} ${activeRingClass} relative transition-all duration-200`}
+        className={`flex flex-col items-center ${activeRingClass} transition-all duration-200`}
+        style={seatStyle}
       >
         {/* Position badge */}
         {positionBadge && (
-          <div className="absolute -top-2 -left-2 px-1 rounded text-[8px] font-bold bg-amber-500 text-black">
+          <div
+            className="absolute -top-2 -left-2 px-1 rounded text-[8px] font-bold"
+            style={{
+              background: positionBadge === 'BTN' ? '#eab308' : positionBadge === 'SB' ? '#ef4444' : '#3366cc',
+              color: positionBadge === 'BTN' ? '#000' : '#fff',
+            }}
+          >
             {positionBadge}
           </div>
         )}
 
         {/* Dealer Button */}
         {isButton && (
-          <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center shadow">
+          <div
+            className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-black text-[10px] font-bold flex items-center justify-center"
+            style={{
+              background: '#eab308',
+              border: '2px solid #ca8a04',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+            }}
+          >
             D
           </div>
         )}
 
         <span
-          className={`text-xs font-semibold truncate max-w-[80px] ${
-            player.isHuman ? 'text-blue-300' : 'text-white'
-          }`}
+          className="text-xs font-semibold truncate max-w-[80px]"
+          style={{ color: player.isHuman ? '#93c5fd' : '#f1f5f9' }}
         >
           {player.name}
         </span>
-        <span className="text-xs text-yellow-400">
+        <span className="text-xs font-mono tabular-nums" style={{ color: '#eab308' }}>
           {formatAmount(player.chips, bb, displayMode)}
         </span>
 
-        {/* Current Bet with slide animation */}
+        {/* Current Bet */}
         {player.currentBet > 0 && (
-          <span className="text-[10px] text-green-400 transition-all duration-150">
+          <span className="text-[10px] transition-all duration-150" style={{ color: '#22c55e' }}>
             {formatAmount(player.currentBet, bb, displayMode)}
           </span>
         )}
 
         {/* Status indicators */}
         {player.isAllIn && (
-          <span className="text-[10px] text-red-400 font-bold">ALL IN</span>
+          <span className="text-[10px] font-bold" style={{ color: '#ef4444' }}>ALL IN</span>
         )}
         {player.isFolded && (
-          <span className="text-[10px] text-gray-500">FOLD</span>
+          <span className="text-[10px]" style={{ color: '#64748b' }}>FOLD</span>
         )}
         {isThinking && (
-          <span className="text-[10px] text-yellow-300 animate-pulse">thinking...</span>
+          <span className="text-[10px] animate-pulse" style={{ color: '#fde047' }}>thinking...</span>
         )}
         {isHumanActive && (
-          <span className="text-[10px] text-blue-300 font-bold animate-pulse">YOUR TURN</span>
+          <span className="text-[10px] font-bold animate-pulse" style={{ color: '#93c5fd' }}>YOUR TURN</span>
         )}
       </div>
     </div>

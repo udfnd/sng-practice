@@ -5,12 +5,18 @@
 :root {
   --felt-color: #1a5c2a;
   --felt-dark: #0f3d1a;
-  --text-primary: #f0f0f0;
-  --text-secondary: #a0a0a0;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --bg-primary: #0a0e14;
+  --bg-surface: #141b24;
+  --bg-surface-2: #1c2530;
 }
 
 body {
-  @apply bg-gray-900 text-white font-poker antialiased;
+  @apply font-poker antialiased;
+  background-color: #0a0e14;
+  color: #f1f5f9;
   margin: 0;
   min-height: 100vh;
 }
@@ -56,15 +62,28 @@ input[type='range']::-moz-range-thumb {
 /* Active player glow animation */
 @keyframes activePulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.6);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0);
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes activePulseYellow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(234, 179, 8, 0);
   }
 }
 
 .active-player-glow {
   animation: activePulse 1.5s ease-in-out infinite;
+}
+
+.active-player-glow-yellow {
+  animation: activePulseYellow 1.5s ease-in-out infinite;
 }
 
 /* Chip slide animation */

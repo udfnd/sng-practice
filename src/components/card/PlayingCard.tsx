@@ -16,10 +16,10 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
 };
 
 const SUIT_FILL_COLORS: Record<Suit, string> = {
-  spades: '#1a1a1a',
-  hearts: '#cc0000',
-  diamonds: '#cc0000',
-  clubs: '#1a1a1a',
+  spades: '#e5e7eb',
+  hearts: '#dc2626',
+  diamonds: '#dc2626',
+  clubs: '#e5e7eb',
 };
 
 const RANK_DISPLAY: Record<number, string> = {
@@ -110,13 +110,13 @@ function FaceUpCard({
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Card background */}
-      <rect width={w} height={h} rx="4" fill="white" />
+      <rect width={w} height={h} rx="4" fill="#1e293b" />
       {/* Card border */}
       <rect
         width={w} height={h}
         rx="4"
         fill="none"
-        stroke="#d1d5db"
+        stroke="#334155"
         strokeWidth="0.75"
       />
 

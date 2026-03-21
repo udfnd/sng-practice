@@ -3,15 +3,24 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
 // Seat positions as percentages of container (top/left)
+// Arranged in oval pattern per design spec:
+// Seat 0 (human): 270° bottom center
+// Seat 1: 225° bottom-left
+// Seat 2: 180° left
+// Seat 3: 135° top-left
+// Seat 4: 90° top center
+// Seat 5: 45° top-right
+// Seat 6: 0° right
+// Seat 7: 315° bottom-right
 const SEAT_POSITIONS = [
-  { top: '80%', left: '50%' },   // 0: bottom center (human)
-  { top: '70%', left: '15%' },   // 1: bottom left
-  { top: '40%', left: '5%' },    // 2: middle left
-  { top: '10%', left: '15%' },   // 3: top left
-  { top: '5%', left: '40%' },    // 4: top center-left
-  { top: '5%', left: '60%' },    // 5: top center-right
-  { top: '10%', left: '85%' },   // 6: top right
-  { top: '40%', left: '95%' },   // 7: middle right
+  { top: '88%', left: '50%' },   // 0: bottom center (human) - 270°
+  { top: '75%', left: '12%' },   // 1: bottom-left - 225°
+  { top: '48%', left: '3%' },    // 2: left - 180°
+  { top: '12%', left: '12%' },   // 3: top-left - 135°
+  { top: '5%', left: '50%' },    // 4: top center - 90°
+  { top: '12%', left: '88%' },   // 5: top-right - 45°
+  { top: '48%', left: '97%' },   // 6: right - 0°
+  { top: '75%', left: '88%' },   // 7: bottom-right - 315°
 ];
 
 export function TableArea() {
