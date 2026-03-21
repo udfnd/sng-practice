@@ -130,11 +130,7 @@ describe('AC-3: Partial reduction', () => {
       const earlyState = reduceEventsPartial(events, 3);
       const laterState = reduceEventsPartial(events, 10);
 
-      // States at different points should differ (e.g., different pot sizes or community cards)
-      const earlyTotal = earlyState.mainPot + earlyState.sidePots.reduce((s, sp) => s + sp.amount, 0)
-        + earlyState.players.reduce((s, p) => s + p.currentBet, 0);
-      const laterTotal = laterState.mainPot + laterState.sidePots.reduce((s, sp) => s + sp.amount, 0)
-        + laterState.players.reduce((s, p) => s + p.currentBet, 0);
+      // States at different points should differ (e.g., different community cards)
 
       // At least something should differ
       expect(earlyState.communityCards.length).toBeLessThanOrEqual(laterState.communityCards.length);
@@ -214,7 +210,7 @@ describe('AC-6: Sequence validation - invalid throws EventSequenceError', () => 
   });
 
   it('should throw EventSequenceError when AWARD_POT is missing (no terminal event)', () => {
-    const tournament = makeTournament(3);
+    makeTournament(3);
 
     // Create a minimal but incomplete sequence with only HAND_START
     const fakeHandStart: GameEvent = {

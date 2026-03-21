@@ -184,7 +184,7 @@ function facingBetDecision(
   madeTier: MadeHandTier,
   drawTier: DrawTier,
   _texAdj: number,
-  detail: ReturnType<typeof analyzeBoardTexture>,
+  _detail: ReturnType<typeof analyzeBoardTexture>,
   rng: () => number,
 ): PostflopDecision {
   const { profile, facingAmount, chips, communityCards } = ctx;
@@ -244,7 +244,7 @@ function passiveDecision(
   ctx: PostflopContext,
   madeTier: MadeHandTier,
   drawTier: DrawTier,
-  detail: ReturnType<typeof analyzeBoardTexture>,
+  _detail: ReturnType<typeof analyzeBoardTexture>,
   rng: () => number,
 ): PostflopDecision {
   const { profile, potSize, chips, bb, communityCards } = ctx;

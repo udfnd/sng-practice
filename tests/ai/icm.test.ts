@@ -40,8 +40,8 @@ describe('calculateICM', () => {
     // But chip leader still gets significantly more than equal share (333)
     expect(equities[0]).toBeGreaterThan(333);
     // And more than the other players
-    expect(equities[0]).toBeGreaterThan(equities[1]);
-    expect(equities[0]).toBeGreaterThan(equities[2]);
+    expect(equities[0]).toBeGreaterThan(equities[1]!);
+    expect(equities[0]).toBeGreaterThan(equities[2]!);
 
     // Sum invariant
     const sumEquities = equities.reduce((a, b) => a + b, 0);
@@ -61,7 +61,7 @@ describe('calculateICM', () => {
     expect(equities[3]).toBeLessThan(50); // much less than equal share (250)
 
     // Each big stack gets significantly more equity than micro stack
-    expect(equities[0]).toBeGreaterThan(equities[3] * 10);
+    expect(equities[0]).toBeGreaterThan(equities[3]! * 10);
 
     // Sum invariant
     const sumEquities = equities.reduce((a, b) => a + b, 0);

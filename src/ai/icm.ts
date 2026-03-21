@@ -32,13 +32,13 @@ export function calculateICM(stacks: number[], payouts: number[]): number[] {
     if (totalRemaining === 0) return;
 
     for (let i = 0; i < n; i++) {
-      if (remainingStacks[i] <= 0) continue;
+      if (remainingStacks[i]! <= 0) continue;
 
-      const prob_i_wins = remainingStacks[i] / totalRemaining;
+      const prob_i_wins = remainingStacks[i]! / totalRemaining;
       const combinedProb = probability * prob_i_wins;
 
       // Player i finishes at 'position'
-      result[i] += combinedProb * payouts[position];
+      result[i]! += combinedProb * payouts[position]!;
 
       // Recurse: remove player i, remaining players compete for next position
       const newStacks = [...remainingStacks];
@@ -68,41 +68,41 @@ export function computeBubbleFactor(
   opponentIndex: number,
   effectiveStack: number,
 ): number {
-  const currentEquity = calculateICM(stacks, payouts)[playerIndex];
+  const currentEquity = calculateICM(stacks, payouts)[playerIndex]!;
 
   // Scenario: player LOSES effectiveStack to opponent
   const stacksAfterLoss = [...stacks];
-  stacksAfterLoss[playerIndex] -= effectiveStack;
-  stacksAfterLoss[opponentIndex] += effectiveStack;
+  stacksAfterLoss[playerIndex]! -= effectiveStack;
+  stacksAfterLoss[opponentIndex]! += effectiveStack;
 
   let equityAfterLoss: number;
-  if (stacksAfterLoss[playerIndex] <= 0) {
+  if (stacksAfterLoss[playerIndex]! <= 0) {
     // Player is busted
     equityAfterLoss = 0;
     stacksAfterLoss[playerIndex] = 0;
   } else {
-    equityAfterLoss = calculateICM(stacksAfterLoss, payouts)[playerIndex];
+    equityAfterLoss = calculateICM(stacksAfterLoss, payouts)[playerIndex]!;
   }
 
   // Scenario: player WINS effectiveStack from opponent
   const stacksAfterWin = [...stacks];
-  stacksAfterWin[playerIndex] += effectiveStack;
-  stacksAfterWin[opponentIndex] -= effectiveStack;
+  stacksAfterWin[playerIndex]! += effectiveStack;
+  stacksAfterWin[opponentIndex]! -= effectiveStack;
 
   let equityAfterWin: number;
-  if (stacksAfterWin[opponentIndex] <= 0) {
+  if (stacksAfterWin[opponentIndex]! <= 0) {
     // Opponent is busted - need to recalculate with updated stacks
     stacksAfterWin[opponentIndex] = 0;
     // Filter out zero stacks, recalculate ICM, then map back to playerIndex
     const nonZeroIndices = stacksAfterWin
       .map((s, i) => (s > 0 ? i : -1))
       .filter((i) => i >= 0);
-    const nonZeroStacks = nonZeroIndices.map((i) => stacksAfterWin[i]);
+    const nonZeroStacks = nonZeroIndices.map((i) => stacksAfterWin[i]!);
     const subEquities = calculateICM(nonZeroStacks, payouts);
     const mappedPlayerIndex = nonZeroIndices.indexOf(playerIndex);
-    equityAfterWin = mappedPlayerIndex >= 0 ? subEquities[mappedPlayerIndex] : 0;
+    equityAfterWin = mappedPlayerIndex >= 0 ? subEquities[mappedPlayerIndex]! : 0;
   } else {
-    equityAfterWin = calculateICM(stacksAfterWin, payouts)[playerIndex];
+    equityAfterWin = calculateICM(stacksAfterWin, payouts)[playerIndex]!;
   }
 
   const riskEquity = currentEquity - equityAfterLoss;

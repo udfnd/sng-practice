@@ -142,7 +142,7 @@ export function getNashPushRange(
  */
 export function getNashCallRange(
   effectiveStackBB: number,
-  pushSizeBB: number,
+  _pushSizeBB: number,
   potOdds: number,
 ): number {
   // Use EP (tightest position) as the base call range reference

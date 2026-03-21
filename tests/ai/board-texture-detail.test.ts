@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { Card } from '@/types';
-import { analyzeBoardTexture, textureAdjustment, type BoardTextureDetail } from '@/ai/board-texture';
+import { analyzeBoardTexture, textureAdjustment } from '@/ai/board-texture';
 
 function makeCard(
   rank: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14,

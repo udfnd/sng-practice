@@ -367,13 +367,13 @@ function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => n
     let opponentIdx = 0;
     let maxStack = 0;
     for (let i = 0; i < allStacks.length; i++) {
-      if (i !== playerIdx && allStacks[i] > maxStack) {
-        maxStack = allStacks[i];
+      if (i !== playerIdx && allStacks[i]! > maxStack) {
+        maxStack = allStacks[i]!;
         opponentIdx = i;
       }
     }
 
-    const effectiveStack = Math.min(allStacks[playerIdx], allStacks[opponentIdx]);
+    const effectiveStack = Math.min(allStacks[playerIdx]!, allStacks[opponentIdx]!);
     const rawBF = computeBubbleFactor(allStacks, payouts, playerIdx, opponentIdx, effectiveStack);
 
     // Apply bubbleTightness to scale bubble factor effect
@@ -384,17 +384,17 @@ function pushFoldDecision(percentile: number, ctx: PreflopContext, _rng: () => n
 
     // Chip leader loosening: if player has 30%+ more chips than others
     // and a short stack has BF > 1.5, chip leaders can push wider
-    if (allStacks[playerIdx] > 0) {
+    if (allStacks[playerIdx]! > 0) {
       const avgOthers = allStacks
         .filter((_, i) => i !== playerIdx)
         .reduce((sum, s) => sum + s, 0) / (allStacks.length - 1);
 
-      if (allStacks[playerIdx] > avgOthers * 1.3) {
+      if (allStacks[playerIdx]! > avgOthers * 1.3) {
         // Check if there's a short stack with high bubble factor
         let maxOtherBF = 0;
         for (let i = 0; i < allStacks.length; i++) {
-          if (i !== playerIdx && allStacks[i] > 0) {
-            const otherBF = computeBubbleFactor(allStacks, payouts, i, playerIdx, Math.min(allStacks[i], allStacks[playerIdx]));
+          if (i !== playerIdx && allStacks[i]! > 0) {
+            const otherBF = computeBubbleFactor(allStacks, payouts, i, playerIdx, Math.min(allStacks[i]!, allStacks[playerIdx]!));
             maxOtherBF = Math.max(maxOtherBF, otherBF);
           }
         }
@@ -531,13 +531,13 @@ function getICMBubbleFactor(ctx: PreflopContext): number {
   let opponentIdx = 0;
   let maxStack = 0;
   for (let i = 0; i < allStacks.length; i++) {
-    if (i !== playerIdx && allStacks[i] > maxStack) {
-      maxStack = allStacks[i];
+    if (i !== playerIdx && allStacks[i]! > maxStack) {
+      maxStack = allStacks[i]!;
       opponentIdx = i;
     }
   }
 
-  const effectiveStack = Math.min(allStacks[playerIdx], allStacks[opponentIdx]);
+  const effectiveStack = Math.min(allStacks[playerIdx]!, allStacks[opponentIdx]!);
   if (effectiveStack <= 0) return 1.0;
 
   return computeBubbleFactor(allStacks, payouts, playerIdx, opponentIdx, effectiveStack);

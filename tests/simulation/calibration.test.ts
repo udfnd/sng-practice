@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { runBatchSimulation, type SimulationConfig, type SimulationResult } from '@/simulation/batch-runner';
-import type { PresetType } from '@/types';
+import { runBatchSimulation, type SimulationConfig } from '@/simulation/batch-runner';
 
 // ============================================================
 // SLOW calibration tests - skip for CI, run explicitly
@@ -46,8 +45,12 @@ async function runAveraged(
     runBatchSimulation(cfg(seedB)),
   ]);
 
-  const merged: Record<string, ReturnType<typeof runAveraged> extends Promise<infer T> ? T[string] : never> = {};
-  const presets = Object.keys(r1.perPreset) as PresetType[];
+  const merged: Record<string, {
+    vpip: number; pfr: number; threeBet: number;
+    vpipTarget: number; pfrTarget: number; threeBetTarget: number;
+    handsEligible: number;
+  }> = {};
+  const presets = Object.keys(r1.perPreset);
   for (const preset of presets) {
     const s1 = r1.perPreset[preset];
     const s2 = r2.perPreset[preset];
