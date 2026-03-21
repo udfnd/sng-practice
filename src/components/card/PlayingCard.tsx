@@ -29,9 +29,9 @@ const RANK_DISPLAY: Record<number, string> = {
 
 // Size map: [svgWidth, svgHeight, tailwindClasses]
 const SIZE_MAP = {
-  sm: { w: 48, h: 67, cls: 'w-12 h-[67px]' },
-  md: { w: 64, h: 90, cls: 'w-16 h-[90px]' },
-  lg: { w: 80, h: 112, cls: 'w-20 h-28' },
+  sm: { w: 56, h: 78, cls: 'w-14 h-[78px]' },
+  md: { w: 72, h: 100, cls: 'w-18 h-[100px]' },
+  lg: { w: 88, h: 123, cls: 'w-22 h-[123px]' },
 };
 
 function FaceDownCard({ size }: { size: 'sm' | 'md' | 'lg' }) {
@@ -74,7 +74,7 @@ function FaceDownCard({ size }: { size: 'sm' | 'md' | 'lg' }) {
         y={h / 2 + 5}
         textAnchor="middle"
         fill="#4a7ab5"
-        fontSize={size === 'lg' ? '18' : size === 'md' ? '14' : '10'}
+        fontSize={size === 'lg' ? '22' : size === 'md' ? '18' : '14'}
         fontFamily="system-ui"
       >
         ♠
@@ -96,11 +96,11 @@ function FaceUpCard({
   const color = SUIT_FILL_COLORS[card.suit];
 
   const isSmall = size === 'sm';
-  const cornerFontSize = isSmall ? 8 : size === 'md' ? 10 : 12;
-  const suitCornerFontSize = isSmall ? 7 : size === 'md' ? 9 : 11;
-  const centerFontSize = isSmall ? 18 : size === 'md' ? 22 : 28;
+  const cornerFontSize = isSmall ? 11 : size === 'md' ? 13 : 15;
+  const suitCornerFontSize = isSmall ? 10 : size === 'md' ? 12 : 14;
+  const centerFontSize = isSmall ? 22 : size === 'md' ? 28 : 34;
   const cornerX = 4;
-  const cornerY = 11;
+  const cornerY = 13;
   const isRankTen = rank === '10';
 
   return (

@@ -15,16 +15,38 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
   const toggleDisplayMode = useGameStore((s) => s.toggleDisplayMode);
 
   return (
-    <header className="flex items-center justify-between px-3 sm:px-4 py-2 bg-gray-800 border-b border-gray-700 text-sm">
-      <div className="flex gap-3 sm:gap-4">
-        <span className="text-gray-400 text-xs sm:text-sm">
-          Level {blindLevel?.level ?? 1}: {blindLevel?.sb ?? 10}/{blindLevel?.bb ?? 20}
-          {blindLevel?.ante ? ` (${blindLevel.ante})` : ''}
-        </span>
-        <span className="text-gray-400 text-xs sm:text-sm">Hand #{handNumber}</span>
+    <header
+      className="flex items-center justify-between px-3 sm:px-4 py-2 text-sm"
+      style={{
+        background: 'linear-gradient(180deg, #1e2736 0%, #161d27 100%)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+      }}
+    >
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div
+          className="flex items-center gap-1.5 px-2 py-1 rounded"
+          style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)' }}
+        >
+          <span className="text-yellow-400 font-semibold text-xs">
+            L{blindLevel?.level ?? 1}
+          </span>
+          <span className="text-gray-400 text-xs">
+            {blindLevel?.sb ?? 10}/{blindLevel?.bb ?? 20}
+          </span>
+          {blindLevel?.ante ? (
+            <span className="text-orange-400 text-xs">({blindLevel.ante})</span>
+          ) : null}
+        </div>
+        <span className="text-gray-500 text-xs">Hand #{handNumber}</span>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-gray-400 text-xs sm:text-sm">{activePlayers} players</span>
+        <span
+          className="text-xs px-2 py-0.5 rounded-full"
+          style={{ background: 'rgba(100,116,139,0.2)', color: '#94a3b8' }}
+        >
+          {activePlayers} players
+        </span>
 
         {/* BB / Chips display mode toggle */}
         <button

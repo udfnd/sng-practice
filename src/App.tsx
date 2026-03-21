@@ -76,7 +76,10 @@ export function App() {
 
   // Game table
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div
+      className="flex flex-col h-screen overflow-hidden"
+      style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a2035 0%, #0d1117 70%)' }}
+    >
       <TopBar
         onToggleSidePanel={() => setSidePanelOpen((v) => !v)}
         sidePanelOpen={sidePanelOpen}

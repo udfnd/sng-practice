@@ -124,8 +124,12 @@ export function ActionPanel() {
 
   return (
     <div
-      className="flex flex-col gap-2 py-3 px-4 rounded-lg mx-2 sm:mx-4 mb-2 sm:mb-4 safe-bottom"
-      style={{ background: '#141b24', border: '1px solid rgba(100,116,139,0.2)' }}
+      className="flex flex-col gap-2 py-3 px-4 rounded-xl mx-2 sm:mx-4 mb-2 sm:mb-4 safe-bottom"
+      style={{
+        background: 'linear-gradient(180deg, #1a2130 0%, #141b24 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.3)',
+      }}
     >
       {/* Main action buttons */}
       <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
@@ -133,10 +137,14 @@ export function ActionPanel() {
           <button
             onClick={() => { submitAction('FOLD', 0); setAllInConfirm(false); }}
             className={`${btnBase} flex-1 sm:flex-none focus:ring-red-500`}
-            style={{ background: '#ef4444', color: '#fff' }}
+            style={{
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              color: '#fff',
+              boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
+            }}
             aria-label="Fold hand (F)"
           >
-            Fold <span className="text-xs opacity-60 font-normal ml-1">[F]</span>
+            Fold <span className="text-xs opacity-50 font-normal ml-1">[F]</span>
           </button>
         )}
 
@@ -144,10 +152,14 @@ export function ActionPanel() {
           <button
             onClick={() => { submitAction('CHECK', 0); setAllInConfirm(false); }}
             className={`${btnBase} flex-1 sm:flex-none focus:ring-green-500`}
-            style={{ background: '#22c55e', color: '#fff' }}
+            style={{
+              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              color: '#fff',
+              boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
+            }}
             aria-label="Check (C)"
           >
-            Check <span className="text-xs opacity-60 font-normal ml-1">[C]</span>
+            Check <span className="text-xs opacity-50 font-normal ml-1">[C]</span>
           </button>
         )}
 
@@ -155,11 +167,15 @@ export function ActionPanel() {
           <button
             onClick={() => { submitAction('CALL', callAmount); setAllInConfirm(false); }}
             className={`${btnBase} flex-1 sm:flex-none focus:ring-blue-500`}
-            style={{ background: '#3b82f6', color: '#fff' }}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              color: '#fff',
+              boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
+            }}
             aria-label={`Call ${formatAmount(callAmount, bb, displayMode)} (C)`}
           >
             Call {formatAmount(callAmount, bb, displayMode)}
-            <span className="text-xs opacity-60 font-normal ml-1">[C]</span>
+            <span className="text-xs opacity-50 font-normal ml-1">[C]</span>
           </button>
         )}
 
@@ -167,11 +183,15 @@ export function ActionPanel() {
           <button
             onClick={() => handleBetOrRaise(currentRaiseAmt)}
             className={`${btnBase} flex-1 sm:flex-none focus:ring-yellow-500`}
-            style={{ background: '#eab308', color: '#000' }}
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              color: '#000',
+              boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+            }}
             aria-label={`${canRaise ? 'Raise' : 'Bet'} ${formatAmount(currentRaiseAmt, bb, displayMode)} (R)`}
           >
             {canRaise ? 'Raise' : 'Bet'} {formatAmount(currentRaiseAmt, bb, displayMode)}
-            <span className="text-xs opacity-60 font-normal ml-1">[R]</span>
+            <span className="text-xs opacity-50 font-normal ml-1">[R]</span>
           </button>
         )}
 
@@ -179,15 +199,18 @@ export function ActionPanel() {
           onClick={handleAllIn}
           className={`${btnBase} ml-auto disabled:opacity-40 disabled:cursor-not-allowed focus:ring-red-500`}
           style={{
-            background: allInConfirm ? '#dc2626' : '#991b1b',
+            background: allInConfirm
+              ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
+              : 'linear-gradient(135deg, #7f1d1d, #5b1111)',
             color: '#fff',
-            border: allInConfirm ? '2px solid #ef4444' : undefined,
+            border: allInConfirm ? '2px solid #ef4444' : '1px solid rgba(239,68,68,0.3)',
+            boxShadow: allInConfirm ? '0 0 12px rgba(239,68,68,0.5)' : 'none',
           }}
           disabled={!canBetOrRaise && !canCall}
           aria-label={`All-in ${formatAmount(humanPlayer.chips, bb, displayMode)} (A)`}
         >
           {allInConfirm ? 'Confirm?' : `All-In ${formatAmount(humanPlayer.chips, bb, displayMode)}`}
-          <span className="text-xs opacity-60 font-normal ml-1">[A]</span>
+          <span className="text-xs opacity-50 font-normal ml-1">[A]</span>
         </button>
       </div>
 

@@ -82,6 +82,14 @@ export type ActionProvider = (
 ) => Promise<ActionResponse>;
 
 /**
+ * Optional async hook called before each AI player action.
+ * Used by the game worker to inject visual delays so users can watch AI play.
+ *
+ * @param playerId The AI player about to act
+ */
+export type OnBeforeAIAction = (playerId: string) => Promise<void>;
+
+/**
  * Run a single hand from the current tournament state.
  * Mutates tournament.gameState in place.
  *
@@ -93,6 +101,7 @@ export type ActionProvider = (
 export async function runHand(
   tournament: TournamentState,
   getAction: ActionProvider,
+  onBeforeAIAction?: OnBeforeAIAction,
 ): Promise<GameEvent[]> {
   const events: GameEvent[] = [];
   const { gameState, totalChips } = tournament;
@@ -171,7 +180,7 @@ export async function runHand(
   transitionToPreflop(gameState);
 
   // Run preflop betting round
-  await runBettingRound(tournament, getAction, events, preflopAggressor, handPrng, (id) => { preflopAggressor = id; });
+  await runBettingRound(tournament, getAction, events, preflopAggressor, handPrng, (id) => { preflopAggressor = id; }, onBeforeAIAction);
 
   // Check for fold-win
   if (isFoldWin(gameState)) {
@@ -214,7 +223,7 @@ export async function runHand(
 
     if (!runout) {
       // Run betting round for this street
-      await runBettingRound(tournament, getAction, events, preflopAggressor, handPrng, null);
+      await runBettingRound(tournament, getAction, events, preflopAggressor, handPrng, null, onBeforeAIAction);
 
       // Check fold-win after each street
       if (isFoldWin(gameState)) {
@@ -266,6 +275,7 @@ async function runBettingRound(
   preflopAggressor: string | null,
   handPrng: PrngState | null,
   setPreflopAggressor: ((id: string) => void) | null,
+  onBeforeAIAction?: OnBeforeAIAction,
 ): Promise<void> {
   const { gameState } = tournament;
 
@@ -345,6 +355,12 @@ async function runBettingRound(
       // AI player: use selectAIAction with per-hand PRNG.
       // handPrng must be initialized before any AI action is taken.
       if (!handPrng) throw new Error('handPrng must be initialized before AI actions');
+
+      // Invoke optional pre-action hook (e.g. for visual delay in UI)
+      if (onBeforeAIAction) {
+        await onBeforeAIAction(player.id);
+      }
+
       const rng = () => nextFloat(handPrng);
       actionResult = selectAIAction(player, gameState, preflopAggressor, rng);
     } else {
@@ -571,6 +587,7 @@ export async function runTournament(
   tournament: TournamentState,
   getAction: ActionProvider,
   onEvent: (event: GameEvent) => void,
+  onBeforeAIAction?: OnBeforeAIAction,
 ): Promise<Standing[]> {
   const maxHands = 500; // Safety limit (typical SNG: 60-120 hands)
   let handsPlayed = 0;
@@ -586,7 +603,7 @@ export async function runTournament(
     );
 
     // Run a single hand
-    const handEvents = await runHand(tournament, getAction);
+    const handEvents = await runHand(tournament, getAction, onBeforeAIAction);
 
     // Emit all events
     for (const event of handEvents) {

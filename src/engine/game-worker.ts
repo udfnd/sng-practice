@@ -107,6 +107,16 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     });
   };
 
+  // AI delay hook: called before each AI action to give users time to see the state.
+  // We flush pending events and update state first, then wait 1500ms.
+  const AI_ACTION_DELAY_MS = 1500;
+  const onBeforeAIAction = async (playerId: string): Promise<void> => {
+    flushPendingEvents();
+    postStateUpdate(tournament.gameState, true);
+    postMsg({ type: 'AI_THINKING', playerId });
+    await new Promise<void>((resolve) => setTimeout(resolve, AI_ACTION_DELAY_MS));
+  };
+
   // Batch events between meaningful checkpoints to avoid flooding main thread
   let pendingEvents: GameEvent[] = [];
 
@@ -140,7 +150,7 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
 
   try {
     console.log('[Worker] Starting runTournament...');
-    await runTournament(tournament, actionProvider, onEvent);
+    await runTournament(tournament, actionProvider, onEvent, onBeforeAIAction);
 
     // Flush remaining events and send final state.
     // NOTE: runTournament already emits TOURNAMENT_END via onEvent, which is

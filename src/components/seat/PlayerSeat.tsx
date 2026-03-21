@@ -34,43 +34,48 @@ export const PlayerSeat = memo(function PlayerSeat({
 
   if (!player.isActive) {
     return (
-      <div className="flex flex-col items-center opacity-30 transition-opacity duration-300">
+      <div className="flex flex-col items-center opacity-20 transition-opacity duration-300">
         <div
-          className="w-20 h-12 rounded flex items-center justify-center text-xs"
-          style={{ background: '#141b24', color: '#64748b' }}
+          className="w-20 h-10 rounded-xl flex items-center justify-center text-xs font-medium"
+          style={{ background: '#0d1117', color: '#374151', border: '1px solid #1f2937' }}
         >
-          Out
+          Empty
         </div>
       </div>
     );
   }
 
-  // Border and glow based on state
-  let seatStyle: React.CSSProperties = {
-    background: player.isFolded ? 'rgba(20,27,36,0.4)' : player.isAllIn ? 'rgba(127,29,29,0.4)' : 'rgba(20,27,36,0.6)',
-    border: '1px solid rgba(100,116,139,0.2)',
-    borderRadius: '12px',
-    padding: '8px',
-    position: 'relative' as const,
-  };
+  // Border color based on player state
+  let borderColor = 'rgba(255,255,255,0.1)';
+  let bgColor = player.isFolded
+    ? 'rgba(13,17,23,0.7)'
+    : player.isAllIn
+    ? 'rgba(127,29,29,0.5)'
+    : 'rgba(22,29,39,0.92)';
+  let glowShadow = 'none';
 
   if (isHumanActive) {
-    seatStyle = {
-      ...seatStyle,
-      border: '2px solid #3b82f6',
-      transform: 'scale(1.02)',
-    };
+    borderColor = '#3b82f6';
+    glowShadow = '0 0 0 3px rgba(59,130,246,0.35), 0 4px 12px rgba(0,0,0,0.5)';
   } else if (isThinking) {
-    seatStyle = {
-      ...seatStyle,
-      border: '2px solid #eab308',
-      transform: 'scale(1.02)',
-    };
-  } else if (player.isFolded) {
-    seatStyle = { ...seatStyle, opacity: 0.5 };
+    borderColor = '#eab308';
+    glowShadow = '0 0 0 3px rgba(234,179,8,0.35), 0 4px 12px rgba(0,0,0,0.5)';
   } else if (player.isAllIn) {
-    seatStyle = { ...seatStyle, border: '1px solid #ef4444' };
+    borderColor = '#ef4444';
+    glowShadow = '0 0 0 2px rgba(239,68,68,0.3), 0 4px 8px rgba(0,0,0,0.5)';
   }
+
+  const seatStyle: React.CSSProperties = {
+    background: bgColor,
+    border: `1.5px solid ${borderColor}`,
+    borderRadius: '14px',
+    padding: '7px 10px',
+    position: 'relative' as const,
+    boxShadow: glowShadow !== 'none' ? glowShadow : '0 2px 8px rgba(0,0,0,0.5)',
+    opacity: player.isFolded ? 0.45 : 1,
+    transition: 'all 0.2s ease',
+    minWidth: '76px',
+  };
 
   const activeRingClass = isHumanActive
     ? 'active-player-glow'
@@ -83,7 +88,7 @@ export const PlayerSeat = memo(function PlayerSeat({
   return (
     <div className="flex flex-col items-center gap-1 transition-all duration-200">
       {/* Hole Cards */}
-      <div className="flex gap-0.5">
+      <div className="flex gap-0.5" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.6))' }}>
         {player.holeCards ? (
           player.isHuman ? (
             <>
@@ -99,7 +104,7 @@ export const PlayerSeat = memo(function PlayerSeat({
         ) : null}
       </div>
 
-      {/* Player Info */}
+      {/* Player Info Badge */}
       <div
         className={`flex flex-col items-center ${activeRingClass} transition-all duration-200`}
         style={seatStyle}
@@ -107,10 +112,11 @@ export const PlayerSeat = memo(function PlayerSeat({
         {/* Position badge */}
         {positionBadge && (
           <div
-            className="absolute -top-2 -left-2 px-1 rounded text-[8px] font-bold"
+            className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wide"
             style={{
-              background: positionBadge === 'BTN' ? '#eab308' : positionBadge === 'SB' ? '#ef4444' : '#3366cc',
-              color: positionBadge === 'BTN' ? '#000' : '#fff',
+              background: positionBadge === 'BTN' ? '#d97706' : positionBadge === 'SB' ? '#dc2626' : '#1d4ed8',
+              color: '#fff',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
             }}
           >
             {positionBadge}
@@ -122,44 +128,71 @@ export const PlayerSeat = memo(function PlayerSeat({
           <div
             className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-black text-[10px] font-bold flex items-center justify-center"
             style={{
-              background: '#eab308',
-              border: '2px solid #ca8a04',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+              background: 'linear-gradient(135deg, #fcd34d, #d97706)',
+              border: '1.5px solid #b45309',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
             }}
           >
             D
           </div>
         )}
 
-        <span
-          className="text-xs font-semibold truncate max-w-[80px]"
-          style={{ color: player.isHuman ? '#93c5fd' : '#f1f5f9' }}
-        >
-          {player.name}
-        </span>
-        <span className="text-xs font-mono tabular-nums" style={{ color: '#eab308' }}>
+        {/* Avatar circle + Name */}
+        <div className="flex items-center gap-1.5 w-full">
+          <div
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+            style={{
+              background: player.isHuman ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'linear-gradient(135deg, #374151, #1f2937)',
+              color: '#fff',
+            }}
+          >
+            {player.name.charAt(0).toUpperCase()}
+          </div>
+          <span
+            className="text-xs font-semibold truncate"
+            style={{ color: player.isHuman ? '#93c5fd' : '#e2e8f0', maxWidth: '52px' }}
+          >
+            {player.name}
+          </span>
+        </div>
+
+        {/* Stack */}
+        <span className="text-sm font-bold tabular-nums mt-0.5" style={{ color: '#fcd34d' }}>
           {formatAmount(player.chips, bb, displayMode)}
         </span>
 
-        {/* Current Bet */}
+        {/* Current Bet - prominent */}
         {player.currentBet > 0 && (
-          <span className="text-[10px] transition-all duration-150" style={{ color: '#22c55e' }}>
-            {formatAmount(player.currentBet, bb, displayMode)}
-          </span>
+          <div
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full mt-0.5"
+            style={{
+              background: 'rgba(250,204,21,0.15)',
+              border: '1px solid rgba(250,204,21,0.4)',
+            }}
+          >
+            <span className="text-sm font-bold transition-all duration-150" style={{ color: '#facc15', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+              {formatAmount(player.currentBet, bb, displayMode)}
+            </span>
+          </div>
         )}
 
         {/* Status indicators */}
         {player.isAllIn && (
-          <span className="text-[10px] font-bold" style={{ color: '#ef4444' }}>ALL IN</span>
+          <span
+            className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded mt-0.5"
+            style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }}
+          >
+            ALL IN
+          </span>
         )}
         {player.isFolded && (
-          <span className="text-[10px]" style={{ color: '#64748b' }}>FOLD</span>
+          <span className="text-[9px] font-medium mt-0.5" style={{ color: '#6b7280' }}>FOLDED</span>
         )}
-        {isThinking && (
-          <span className="text-[10px] animate-pulse" style={{ color: '#fde047' }}>thinking...</span>
+        {isThinking && !player.isFolded && (
+          <span className="text-[9px] animate-pulse mt-0.5" style={{ color: '#fde047' }}>thinking...</span>
         )}
         {isHumanActive && (
-          <span className="text-[10px] font-bold animate-pulse" style={{ color: '#93c5fd' }}>YOUR TURN</span>
+          <span className="text-[9px] font-bold animate-pulse mt-0.5" style={{ color: '#93c5fd' }}>YOUR TURN</span>
         )}
       </div>
     </div>

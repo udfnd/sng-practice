@@ -37,7 +37,12 @@ export function TableArea() {
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 
   return (
-    <div className="relative w-full max-w-4xl aspect-[16/10] mx-auto px-1 sm:px-0">
+    <div
+      className="relative w-full max-w-4xl aspect-[16/10] mx-auto px-1 sm:px-0"
+      style={{
+        filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))',
+      }}
+    >
       <PokerTable communityCards={communityCards} potAmount={totalPot} />
       {players.map((player) => {
         const pos = SEAT_POSITIONS[player.seatIndex];
