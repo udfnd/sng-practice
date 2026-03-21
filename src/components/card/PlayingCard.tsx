@@ -33,7 +33,7 @@ const VB_W = 60;
 const VB_H = 84;
 
 const CONTAINER_SIZE = {
-  sm: 'w-[52px] h-[73px]',
+  sm: 'w-[58px] h-[81px]',
   md: 'w-[68px] h-[95px]',
   lg: 'w-[88px] h-[123px]',
 };

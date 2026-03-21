@@ -85,10 +85,8 @@ export function App() {
         sidePanelOpen={sidePanelOpen}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <main className="flex flex-col flex-1 min-h-0 overflow-visible">
-          <div className="flex-1 min-h-0 overflow-visible">
-            <TableArea />
-          </div>
+        <main className="flex flex-col flex-1 min-h-0">
+          <TableArea />
           <div className="flex-shrink-0">
             <ActionPanel />
           </div>

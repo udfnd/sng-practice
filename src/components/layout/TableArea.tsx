@@ -2,18 +2,17 @@ import { useGameStore } from '@/store/game-store';
 import { PokerTable } from '@/components/table/PokerTable';
 import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
-// Seat positions — spread wider to avoid overlap with larger card/text sizes.
-// The container uses aspect-[16/11] for more vertical room.
-// Positions are tuned so cards + info badges never collide.
+// Seat positions — placed along the table edge.
+// Uses a wider container with padding so seats stay within bounds.
 const SEAT_POSITIONS = [
-  { top: '92%', left: '50%' },   // 0: bottom center (human)
-  { top: '78%', left: '8%' },    // 1: bottom-left
-  { top: '46%', left: '-2%' },   // 2: left
-  { top: '8%',  left: '10%' },   // 3: top-left
-  { top: '-2%', left: '50%' },   // 4: top center
-  { top: '8%',  left: '90%' },   // 5: top-right
-  { top: '46%', left: '102%' },  // 6: right
-  { top: '78%', left: '92%' },   // 7: bottom-right
+  { top: '90%', left: '50%' },   // 0: bottom center (human)
+  { top: '76%', left: '10%' },   // 1: bottom-left
+  { top: '50%', left: '2%' },    // 2: left
+  { top: '14%', left: '10%' },   // 3: top-left
+  { top: '2%',  left: '50%' },   // 4: top center
+  { top: '14%', left: '90%' },   // 5: top-right
+  { top: '50%', left: '98%' },   // 6: right
+  { top: '76%', left: '90%' },   // 7: bottom-right
 ];
 
 const EMPTY_PLAYERS: never[] = [];
@@ -30,10 +29,9 @@ export function TableArea() {
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 
   return (
-    <div className="relative w-full flex-1 flex items-center justify-center overflow-visible px-4 sm:px-8">
-      {/* Inner container with fixed aspect ratio — overflow visible so edge seats render */}
+    <div className="relative w-full flex-1 flex items-center justify-center px-12 sm:px-16 py-4">
       <div
-        className="relative w-full max-w-5xl aspect-[16/11]"
+        className="relative w-full max-w-5xl aspect-[16/10]"
         style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.6))' }}
       >
         <PokerTable communityCards={communityCards} potAmount={totalPot} />

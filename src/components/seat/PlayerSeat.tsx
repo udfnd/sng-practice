@@ -84,7 +84,7 @@ export const PlayerSeat = memo(function PlayerSeat({
     ? 'active-player-glow-yellow'
     : '';
 
-  const cardSize = 'md' as const;
+  const cardSize = 'sm' as const;
 
   return (
     <div className="flex flex-col items-center gap-0.5 transition-all duration-200">

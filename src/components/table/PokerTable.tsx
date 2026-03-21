@@ -20,7 +20,7 @@ export const PokerTable = memo(function PokerTable({
     <>
       {/* Outer rail (wooden border) */}
       <div
-        className="absolute inset-[8%] rounded-[50%]"
+        className="absolute inset-[6%] rounded-[50%]"
         style={{
           background: 'linear-gradient(145deg, #a0621f 0%, #6b3f10 50%, #7c4a1a 100%)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)',
@@ -30,7 +30,7 @@ export const PokerTable = memo(function PokerTable({
       <div
         className="absolute flex flex-col items-center justify-center gap-3"
         style={{
-          inset: 'calc(8% + 8px)',
+          inset: 'calc(6% + 8px)',
           borderRadius: '50%',
           background: 'radial-gradient(ellipse at 40% 35%, #2d6a3f 0%, #1a5c2a 40%, #0f3d1a 100%)',
           boxShadow: 'inset 0 4px 16px rgba(0,0,0,0.4), inset 0 -2px 8px rgba(0,0,0,0.3)',
@@ -56,7 +56,7 @@ export const PokerTable = memo(function PokerTable({
             ) : (
               <div
                 key={i}
-                className="w-[68px] h-[95px] rounded"
+                className="w-[68px] h-[95px] rounded hidden sm:block"
                 style={{
                   border: '1px solid rgba(255,255,255,0.08)',
                   background: 'rgba(0,0,0,0.2)',
