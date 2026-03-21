@@ -3,36 +3,43 @@ import { PokerTable } from '@/components/table/PokerTable';
 import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
 /*
- * Layout uses CSS Grid to eliminate all absolute-positioning overlap.
+ * Poker table layout with 8 seats around an elliptical table.
  *
- * 5-column × 5-row grid:
+ * Architecture:
+ * - Outer container fills available space (flex-1 from parent)
+ * - Inner "board" div is position:relative, centered, aspect-ratio fixed
+ * - Table felt is absolutely positioned in the CENTER of the board (inset 20%/15%)
+ * - Seats are absolutely positioned around the BOARD edges (outside the felt)
  *
- *  col:    1      2      3       4      5
- *  row 1:  .      S3     S4      S5     .
- *  row 2:  S2     .    TABLE     .      S6
- *  row 3:  S1     .    TABLE     .      S7
- *  row 4:  .      .     S0       .      .
+ * The key insight: the felt is SMALLER than the board container.
+ * Seats sit in the gap between felt edge and board edge.
+ * Since seats use % of the board (not the felt), they never overlap the felt.
  *
- * The table felt spans rows 2–3, cols 2–4.
- * Each seat is in its own cell — no overlaps.
+ *          [S4]
+ *     [S3]       [S5]
+ *   [S2] ╭─────────╮ [S6]
+ *         │  FELT   │
+ *   [S1] ╰─────────╯ [S7]
+ *          [S0]
  */
+
+// Positions as % of the BOARD container (not the felt).
+// Felt occupies roughly 20%-80% horizontally, 18%-82% vertically.
+// Seats are placed OUTSIDE the felt zone.
+const SEAT_POSITIONS: { top: string; left: string }[] = [
+  { top: '95%', left: '50%' },   // 0: bottom center (hero)
+  { top: '78%', left: '6%' },    // 1: bottom-left
+  { top: '48%', left: '1%' },    // 2: left
+  { top: '14%', left: '10%' },   // 3: top-left
+  { top: '1%',  left: '50%' },   // 4: top center
+  { top: '14%', left: '90%' },   // 5: top-right
+  { top: '48%', left: '99%' },   // 6: right
+  { top: '78%', left: '94%' },   // 7: bottom-right
+];
 
 const EMPTY_PLAYERS: never[] = [];
 const EMPTY_CARDS: never[] = [];
 const EMPTY_SIDE_POTS: never[] = [];
-
-// Map seat index to [row, col, justifySelf, alignSelf]
-// Grid is 1-indexed
-const SEAT_GRID: Record<number, { row: number; col: number; justify: string; align: string }> = {
-  0: { row: 4, col: 3, justify: 'center', align: 'end' },   // Hero - bottom center
-  1: { row: 3, col: 1, justify: 'end',    align: 'center' }, // bottom-left
-  2: { row: 2, col: 1, justify: 'end',    align: 'center' }, // left
-  3: { row: 1, col: 2, justify: 'end',    align: 'start' },  // top-left
-  4: { row: 1, col: 3, justify: 'center', align: 'start' },  // top-center
-  5: { row: 1, col: 4, justify: 'start',  align: 'start' },  // top-right
-  6: { row: 2, col: 5, justify: 'start',  align: 'center' }, // right
-  7: { row: 3, col: 5, justify: 'start',  align: 'center' }, // bottom-right
-};
 
 export function TableArea() {
   const players = useGameStore((s) => s.gameState?.players) ?? EMPTY_PLAYERS;
@@ -43,50 +50,61 @@ export function TableArea() {
 
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 
+  /*
+   * Sizing: the board container fills available width/height but maintains
+   * a 16:9 aspect ratio. It's capped so it fits within:
+   *   width: viewport - SidePanel(240px) - padding
+   *   height: viewport - TopBar(40px) - ActionPanel(120px) - padding
+   */
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ padding: '8px 0' }}>
-      {/*
-       * Grid container — fixed aspect ratio, bounded by viewport.
-       * TopBar ~40px + ActionPanel ~120px + grid padding = ~180px reserved.
-       */}
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '8px 80px',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Board container — holds felt + seats */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 2fr 1fr 1fr',
-          gridTemplateRows: 'auto 1fr 1fr auto',
-          width: 'min(calc(100vw - 24px), calc((100vh - 180px) * 16 / 9))',
-          maxWidth: '960px',
-          height: 'min(calc(100vh - 180px), calc((100vw - 24px) * 9 / 16))',
-          maxHeight: '540px',
-          gap: '4px',
+          position: 'relative',
+          width: '100%',
+          maxWidth: '860px',
+          aspectRatio: '16 / 9',
+          /* Constrain height so it doesn't push ActionPanel off screen */
+          maxHeight: 'calc(100vh - 210px)',
         }}
       >
-        {/* Table felt — spans rows 2–3, cols 2–4 */}
+        {/* Table felt — centered, smaller than board */}
         <div
           style={{
-            gridRow: '2 / 4',
-            gridColumn: '2 / 5',
-            padding: '4px',
+            position: 'absolute',
+            top: '18%',
+            bottom: '18%',
+            left: '14%',
+            right: '14%',
           }}
         >
           <PokerTable communityCards={communityCards} potAmount={totalPot} />
         </div>
 
-        {/* Player seats in their dedicated grid cells */}
+        {/* Player seats — positioned around the board edges */}
         {players.map((player) => {
-          const grid = SEAT_GRID[player.seatIndex];
-          if (!grid) return null;
+          const pos = SEAT_POSITIONS[player.seatIndex];
+          if (!pos) return null;
           return (
             <div
               key={player.id}
               style={{
-                gridRow: grid.row,
-                gridColumn: grid.col,
-                display: 'flex',
-                alignItems: grid.align === 'start' ? 'flex-start' : grid.align === 'end' ? 'flex-end' : 'center',
-                justifyContent: grid.justify === 'start' ? 'flex-start' : grid.justify === 'end' ? 'flex-end' : 'center',
-                padding: player.seatIndex === 0 ? '4px 0 0 0' : '2px',
-                minWidth: 0,
+                position: 'absolute',
+                top: pos.top,
+                left: pos.left,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 10,
               }}
             >
               <PlayerSeat player={player} isButton={player.seatIndex === buttonSeat} />
