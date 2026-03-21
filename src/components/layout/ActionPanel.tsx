@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/game-store';
 import { formatAmount, bbToChips, chipsToBB } from '@/utils/format-chips';
 
@@ -13,13 +13,72 @@ export function ActionPanel() {
   const gameState = useGameStore((s) => s.gameState);
   const displayMode = useGameStore((s) => s.displayMode);
 
-  // raiseAmount is always stored in chips internally
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [allInConfirm, setAllInConfirm] = useState(false);
 
-  if (!isPlaying) {
-    return null;
-  }
+  const canFold = validActions.includes('FOLD');
+  const canCheck = validActions.includes('CHECK');
+  const canCall = validActions.includes('CALL');
+  const canBet = validActions.includes('BET');
+  const canRaise = validActions.includes('RAISE');
+  const canBetOrRaise = canBet || canRaise;
+
+  const bb = gameState?.blindLevel.bb ?? 20;
+  const totalChips = humanPlayer ? humanPlayer.chips + humanPlayer.currentBet : 0;
+  const effectiveMin = minRaise || bb;
+  const effectiveMax = totalChips || bb;
+  const currentRaiseAmt = raiseAmount || effectiveMin;
+  const pot = gameState
+    ? gameState.mainPot + gameState.sidePots.reduce((s, sp) => s + sp.amount, 0)
+    : 0;
+
+  const handleBetOrRaise = useCallback((amount: number) => {
+    const actionType = canRaise ? 'RAISE' : 'BET';
+    submitAction(actionType, amount);
+    setAllInConfirm(false);
+  }, [canRaise, submitAction]);
+
+  const handleAllIn = useCallback(() => {
+    if (allInConfirm) {
+      submitAction('RAISE', totalChips);
+      setAllInConfirm(false);
+    } else {
+      setAllInConfirm(true);
+      setTimeout(() => setAllInConfirm(false), 3000);
+    }
+  }, [allInConfirm, submitAction, totalChips]);
+
+  // Keyboard shortcuts — must be called on EVERY render (no conditional)
+  useEffect(() => {
+    if (!isHumanTurn) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      switch (e.key.toUpperCase()) {
+        case 'F':
+          if (canFold) submitAction('FOLD', 0);
+          break;
+        case 'C':
+          if (canCheck) submitAction('CHECK', 0);
+          else if (canCall) submitAction('CALL', callAmount);
+          break;
+        case 'R':
+          if (canBetOrRaise) handleBetOrRaise(currentRaiseAmt);
+          break;
+        case 'A':
+          if (canBetOrRaise || canCall) handleAllIn();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isHumanTurn, canFold, canCheck, canCall, canBetOrRaise, currentRaiseAmt, callAmount, allInConfirm, submitAction, handleBetOrRaise, handleAllIn]);
+
+  // Early returns AFTER all hooks
+  if (!isPlaying) return null;
 
   if (!isHumanTurn || !humanPlayer || !gameState) {
     return (
@@ -32,90 +91,7 @@ export function ActionPanel() {
     );
   }
 
-  const canFold = validActions.includes('FOLD');
-  const canCheck = validActions.includes('CHECK');
-  const canCall = validActions.includes('CALL');
-  const canBet = validActions.includes('BET');
-  const canRaise = validActions.includes('RAISE');
-  const canBetOrRaise = canBet || canRaise;
-
-  const bb = gameState.blindLevel.bb;
-
-  // Total chips available for betting
-  const totalChips = humanPlayer.chips + humanPlayer.currentBet;
-
-  // Effective min/max for the slider (always in chips)
-  const effectiveMin = minRaise || bb;
-  const effectiveMax = totalChips;
-  const currentRaiseAmt = raiseAmount || effectiveMin;
-
-  // Pot size for preset buttons
-  const pot = gameState.mainPot + gameState.sidePots.reduce((s, sp) => s + sp.amount, 0);
-
-  const handleBetOrRaise = (amount: number) => {
-    const actionType = canRaise ? 'RAISE' : 'BET';
-    submitAction(actionType, amount);
-    setAllInConfirm(false);
-  };
-
-  const handleAllIn = () => {
-    if (allInConfirm) {
-      submitAction('RAISE', totalChips);
-      setAllInConfirm(false);
-    } else {
-      setAllInConfirm(true);
-      // Auto-reset confirmation after 3 seconds
-      setTimeout(() => setAllInConfirm(false), 3000);
-    }
-  };
-
-  // Keyboard shortcuts
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip when focus is in an input field
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
-      switch (e.key.toUpperCase()) {
-        case 'F':
-          if (canFold) {
-            submitAction('FOLD', 0);
-          }
-          break;
-        case 'C':
-          if (canCheck) {
-            submitAction('CHECK', 0);
-          } else if (canCall) {
-            submitAction('CALL', callAmount);
-          }
-          break;
-        case 'R':
-          if (canBetOrRaise) {
-            handleBetOrRaise(currentRaiseAmt);
-          }
-          break;
-        case 'A':
-          if (canBetOrRaise || canCall) {
-            handleAllIn();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canFold, canCheck, canCall, canBetOrRaise, currentRaiseAmt, callAmount, allInConfirm]);
-
-  // Button base - min-h-14 for 56px (>=48px touch target per spec)
-  const btnBase =
-    'min-h-14 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-1';
-
-  // BB mode slider: step in 0.5 BB increments, range in BB units
   const isBBMode = displayMode === 'bb';
-
-  // Slider props differ by mode
   const sliderMin = isBBMode ? chipsToBB(effectiveMin, bb) : effectiveMin;
   const sliderMax = isBBMode ? chipsToBB(effectiveMax, bb) : effectiveMax;
   const sliderStep = isBBMode ? 0.5 : bb;
@@ -123,24 +99,20 @@ export function ActionPanel() {
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Number(e.target.value);
-    if (isBBMode) {
-      setRaiseAmount(bbToChips(val, bb));
-    } else {
-      setRaiseAmount(val);
-    }
+    setRaiseAmount(isBBMode ? bbToChips(val, bb) : val);
   };
 
-  // Helper: clamp a chip amount to slider range
   const clampChips = (chips: number) =>
     Math.min(Math.max(chips, effectiveMin), effectiveMax);
 
-  // Preset BB sizes (in BB units) for BB mode
   const bbPresets: { label: string; bb: number }[] = [
     { label: '2 BB', bb: 2 },
     { label: '2.5 BB', bb: 2.5 },
     { label: '3 BB', bb: 3 },
   ];
 
+  const btnBase =
+    'min-h-14 px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-1';
   const presetBtnClass =
     'min-h-10 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 touch-manipulation focus:outline-none';
 
@@ -227,10 +199,6 @@ export function ActionPanel() {
               className="flex-1"
               style={{ height: '48px', cursor: 'pointer' }}
               aria-label="Bet amount slider"
-              aria-valuemin={sliderMin}
-              aria-valuemax={sliderMax}
-              aria-valuenow={sliderValue}
-              aria-valuetext={formatAmount(currentRaiseAmt, bb, displayMode)}
             />
             <span
               className="text-sm w-20 text-right tabular-nums font-mono font-bold"
@@ -240,7 +208,6 @@ export function ActionPanel() {
             </span>
           </div>
 
-          {/* Preset buttons */}
           <div className="flex gap-1.5 flex-wrap">
             {isBBMode ? (
               <>

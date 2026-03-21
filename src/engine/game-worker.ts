@@ -44,6 +44,7 @@ function postStateUpdate(state: GameState, forceFlush = false): void {
  * Handle START_GAME message: create tournament and run it.
  */
 async function handleStartGame(msg: StartGameMessage): Promise<void> {
+  console.log('[Worker] handleStartGame called');
   const { config, aiProfiles } = msg;
 
   // Build player names: human is seat 0, AI seats 1-7
@@ -88,6 +89,10 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     if (validActions.canBet) validActionTypes.push('BET');
     if (validActions.canRaise) validActionTypes.push('RAISE');
 
+    // Flush any pending events and send current state before asking human to act
+    flushPendingEvents();
+    postStateUpdate(tournament.gameState, true);
+
     // Human player: notify main thread and wait for PLAYER_ACTION
     postMsg({
       type: 'WAITING_FOR_ACTION',
@@ -102,24 +107,43 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     });
   };
 
-  // Event handler: forward events and throttled state updates
-  const onEvent = (event: GameEvent): void => {
-    postMsg({ type: 'GAME_EVENT', event });
+  // Batch events between meaningful checkpoints to avoid flooding main thread
+  let pendingEvents: GameEvent[] = [];
 
-    // Post state update (throttled, but always after HAND_COMPLETE equivalent events)
-    const forceFlush =
+  function flushPendingEvents(): void {
+    if (pendingEvents.length === 0) return;
+    // Send batched events
+    for (const event of pendingEvents) {
+      postMsg({ type: 'GAME_EVENT', event });
+    }
+    pendingEvents = [];
+    // Send state update after flush
+    postStateUpdate(tournament.gameState, true);
+  }
+
+  // Event handler: batch events and flush at checkpoints
+  const onEvent = (event: GameEvent): void => {
+    pendingEvents.push(event);
+
+    // Flush at meaningful checkpoints
+    const isCheckpoint =
       event.type === 'AWARD_POT' ||
       event.type === 'PLAYER_ELIMINATED' ||
       event.type === 'BLIND_LEVEL_UP' ||
-      event.type === 'TOURNAMENT_END';
+      event.type === 'TOURNAMENT_END' ||
+      event.type === 'DEAL_COMMUNITY';
 
-    postStateUpdate(tournament.gameState, forceFlush);
+    if (isCheckpoint) {
+      flushPendingEvents();
+    }
   };
 
   try {
+    console.log('[Worker] Starting runTournament...');
     const standings = await runTournament(tournament, actionProvider, onEvent);
 
-    // Always send final state after tournament ends
+    // Flush remaining events and send final state
+    flushPendingEvents();
     postStateUpdate(tournament.gameState, true);
 
     // Post tournament end standings
@@ -135,6 +159,7 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
       },
     }});
   } catch (err) {
+    console.error('[Worker] Tournament error:', err);
     const message = err instanceof Error ? err.message : String(err);
     postMsg({
       type: 'GAME_ERROR',

@@ -117,13 +117,18 @@ export const useGameStore = create<GameStore>()(
     ...initialState,
 
     startGame: (config, aiProfiles) => {
+      console.log('[GameStore] startGame called', { config, aiProfiles });
       set((draft) => {
         Object.assign(draft, { ...initialState, isPlaying: true, config });
       });
 
       const manager = getWorkerManager();
-      manager.onMessage((msg) => get().handleWorkerMessage(msg));
+      manager.onMessage((msg) => {
+        console.log('[GameStore] Worker message:', msg.type);
+        get().handleWorkerMessage(msg);
+      });
       manager.start(config, aiProfiles);
+      console.log('[GameStore] Worker started');
     },
 
     submitAction: (action, amount) => {
@@ -186,8 +191,7 @@ export const useGameStore = create<GameStore>()(
             // Accumulate events for hand history
             draft._currentHandEvents.push(event);
 
-            // Build player name map from current game state
-            // NOTE: Use plain object to iterate draft players, then create Map OUTSIDE draft access
+            // Build player name map for log formatting
             const playersList = draft.gameState?.players;
             const nameEntries: [string, string][] = [];
             if (playersList) {
@@ -198,11 +202,10 @@ export const useGameStore = create<GameStore>()(
             }
             const nameMap = new Map<string, string>(nameEntries);
 
-            // Format and add to action log
+            // Format and add to action log (only significant events)
             const line = formatEvent(event, nameMap);
             if (line !== null) {
               draft.actionLog.push(line);
-              // Keep log bounded
               if (draft.actionLog.length > 200) {
                 draft.actionLog = draft.actionLog.slice(-100);
               }
@@ -216,7 +219,6 @@ export const useGameStore = create<GameStore>()(
                 draft.isPlaying = false;
                 draft.isHumanTurn = false;
                 draft.thinkingPlayerId = null;
-                // Delete session snapshot on tournament completion
                 void deleteSnapshot();
               }
             }

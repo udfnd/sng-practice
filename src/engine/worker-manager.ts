@@ -36,11 +36,16 @@ export class WorkerManager {
     };
 
     this.worker.onerror = (e: ErrorEvent) => {
+      console.error('[WorkerManager] Worker error:', e.message, e);
       this.messageHandler?.({
         type: 'GAME_ERROR',
         error: 'Worker error',
         details: e.message,
       });
+    };
+
+    this.worker.onmessageerror = (e) => {
+      console.error('[WorkerManager] Message error:', e);
     };
 
     this.worker.postMessage({ type: 'START_GAME', config, aiProfiles });
