@@ -16,15 +16,18 @@ import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
 // Positions as % of the table container.
 // These follow the ellipse edge so seats sit ON the table rim.
+// Spread seats wider along the ellipse to prevent left/right stacking.
+// S1/S3 and S5/S7 are pushed toward the horizontal center so they
+// follow the ellipse curve rather than bunching at the left/right edges.
 const SEAT_POSITIONS: { top: string; left: string }[] = [
-  { top: '96%', left: '50%' },   // 0: bottom center (hero)
-  { top: '80%', left: '10%' },   // 1: bottom-left
-  { top: '50%', left: '2%' },    // 2: left
-  { top: '16%', left: '10%' },   // 3: top-left
+  { top: '97%', left: '50%' },   // 0: bottom center (hero)
+  { top: '82%', left: '18%' },   // 1: bottom-left (pushed right from 10%)
+  { top: '50%', left: '2%' },    // 2: left (stays at edge)
+  { top: '14%', left: '18%' },   // 3: top-left (pushed right from 10%)
   { top: '2%',  left: '50%' },   // 4: top center
-  { top: '16%', left: '90%' },   // 5: top-right
-  { top: '50%', left: '98%' },   // 6: right
-  { top: '80%', left: '90%' },   // 7: bottom-right
+  { top: '14%', left: '82%' },   // 5: top-right (pushed left from 90%)
+  { top: '50%', left: '98%' },   // 6: right (stays at edge)
+  { top: '82%', left: '82%' },   // 7: bottom-right (pushed left from 90%)
 ];
 
 const EMPTY_PLAYERS: never[] = [];
