@@ -19,7 +19,7 @@ export function ActionPanel() {
 
   if (!isHumanTurn || !humanPlayer || !gameState) {
     return (
-      <div className="flex items-center justify-center py-4 text-gray-500 text-sm h-16">
+      <div className="flex items-center justify-center py-4 text-gray-500 text-sm h-16 safe-bottom">
         Waiting for action...
       </div>
     );
@@ -48,14 +48,17 @@ export function ActionPanel() {
     submitAction(actionType, amount);
   };
 
+  const btnBase =
+    'min-h-12 px-4 py-2 rounded font-semibold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation';
+
   return (
-    <div className="flex flex-col gap-2 py-3 px-4 bg-gray-800 rounded-lg mx-4 mb-4">
+    <div className="flex flex-col gap-2 py-3 px-4 bg-gray-800 rounded-lg mx-2 sm:mx-4 mb-2 sm:mb-4 safe-bottom">
       {/* Main action buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
         {canFold && (
           <button
             onClick={() => submitAction('FOLD', 0)}
-            className="px-4 py-2 bg-red-700 hover:bg-red-600 rounded font-semibold text-sm"
+            className={`${btnBase} bg-red-700 hover:bg-red-600 flex-1 sm:flex-none`}
           >
             Fold
           </button>
@@ -64,7 +67,7 @@ export function ActionPanel() {
         {canCheck && (
           <button
             onClick={() => submitAction('CHECK', 0)}
-            className="px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded font-semibold text-sm"
+            className={`${btnBase} bg-blue-700 hover:bg-blue-600 flex-1 sm:flex-none`}
           >
             Check
           </button>
@@ -73,7 +76,7 @@ export function ActionPanel() {
         {canCall && (
           <button
             onClick={() => submitAction('CALL', callAmount)}
-            className="px-4 py-2 bg-green-700 hover:bg-green-600 rounded font-semibold text-sm"
+            className={`${btnBase} bg-green-700 hover:bg-green-600 flex-1 sm:flex-none`}
           >
             Call {callAmount}
           </button>
@@ -82,7 +85,7 @@ export function ActionPanel() {
         {canBetOrRaise && (
           <button
             onClick={() => handleBetOrRaise(currentRaiseAmt)}
-            className="px-4 py-2 bg-yellow-700 hover:bg-yellow-600 rounded font-semibold text-sm"
+            className={`${btnBase} bg-yellow-700 hover:bg-yellow-600 flex-1 sm:flex-none`}
           >
             {canRaise ? 'Raise' : 'Bet'} {currentRaiseAmt}
           </button>
@@ -90,7 +93,7 @@ export function ActionPanel() {
 
         <button
           onClick={() => submitAction('RAISE', totalChips)}
-          className="px-4 py-2 bg-red-800 hover:bg-red-700 rounded font-semibold text-sm ml-auto"
+          className={`${btnBase} bg-red-800 hover:bg-red-700 ml-auto disabled:opacity-40 disabled:cursor-not-allowed`}
           disabled={!canBetOrRaise && !canCall}
         >
           All-In {humanPlayer.chips}
@@ -107,35 +110,48 @@ export function ActionPanel() {
             step={gameState.blindLevel.bb}
             value={currentRaiseAmt}
             onChange={(e) => setRaiseAmount(Number(e.target.value))}
-            className="flex-1"
+            className="flex-1 h-2"
           />
-          <span className="text-xs text-gray-400 w-12 text-right">{currentRaiseAmt}</span>
+          <span className="text-xs text-gray-400 w-14 text-right tabular-nums">
+            {currentRaiseAmt}
+          </span>
 
-          {/* Preset buttons */}
-          <div className="flex gap-1">
-            {pot > 0 && (
-              <>
-                <button
-                  onClick={() => setRaiseAmount(Math.min(Math.max(Math.floor(pot / 2), effectiveMin), effectiveMax))}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                >
-                  1/2
-                </button>
-                <button
-                  onClick={() => setRaiseAmount(Math.min(Math.max(Math.floor(pot * 3 / 4), effectiveMin), effectiveMax))}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                >
-                  3/4
-                </button>
-                <button
-                  onClick={() => setRaiseAmount(Math.min(Math.max(pot, effectiveMin), effectiveMax))}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                >
-                  Pot
-                </button>
-              </>
-            )}
-          </div>
+          {/* Preset buttons — 3 cols on mobile, inline on desktop */}
+          {pot > 0 && (
+            <div className="flex gap-1">
+              <button
+                onClick={() =>
+                  setRaiseAmount(
+                    Math.min(Math.max(Math.floor(pot / 2), effectiveMin), effectiveMax)
+                  )
+                }
+                className="min-h-8 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-all duration-150 active:scale-95 touch-manipulation"
+              >
+                1/2
+              </button>
+              <button
+                onClick={() =>
+                  setRaiseAmount(
+                    Math.min(
+                      Math.max(Math.floor((pot * 3) / 4), effectiveMin),
+                      effectiveMax
+                    )
+                  )
+                }
+                className="min-h-8 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-all duration-150 active:scale-95 touch-manipulation"
+              >
+                3/4
+              </button>
+              <button
+                onClick={() =>
+                  setRaiseAmount(Math.min(Math.max(pot, effectiveMin), effectiveMax))
+                }
+                className="min-h-8 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-all duration-150 active:scale-95 touch-manipulation"
+              >
+                Pot
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

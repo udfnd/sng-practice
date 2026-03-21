@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/game-store';
 import { PokerTable } from '@/components/table/PokerTable';
 import { PlayerSeat } from '@/components/seat/PlayerSeat';
 
+// Seat positions as percentages of container (top/left)
 const SEAT_POSITIONS = [
   { top: '80%', left: '50%' },   // 0: bottom center (human)
   { top: '70%', left: '15%' },   // 1: bottom left
@@ -23,7 +24,7 @@ export function TableArea() {
   const totalPot = mainPot + sidePots.reduce((s, p) => s + p.amount, 0);
 
   return (
-    <div className="relative w-full max-w-4xl aspect-[16/10] mx-auto">
+    <div className="relative w-full max-w-4xl aspect-[16/10] mx-auto px-1 sm:px-0">
       <PokerTable communityCards={communityCards} potAmount={totalPot} />
       {players.map((player) => {
         const pos = SEAT_POSITIONS[player.seatIndex];

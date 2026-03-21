@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Player } from '@/types';
 import { PlayingCard } from '@/components/card/PlayingCard';
 import { useGameStore } from '@/store/game-store';
@@ -7,7 +8,10 @@ interface PlayerSeatProps {
   isButton: boolean;
 }
 
-export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
+export const PlayerSeat = memo(function PlayerSeat({
+  player,
+  isButton,
+}: PlayerSeatProps) {
   const thinkingPlayerId = useGameStore((s) => s.thinkingPlayerId);
   const isHumanTurn = useGameStore((s) => s.isHumanTurn);
   const sbSeat = useGameStore((s) => s.gameState?.sbSeatIndex ?? -1);
@@ -15,7 +19,6 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
 
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
-  const isActive = isThinking || isHumanActive;
 
   // Determine position badge
   const positionBadge = isButton
@@ -28,7 +31,7 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
 
   if (!player.isActive) {
     return (
-      <div className="flex flex-col items-center opacity-30">
+      <div className="flex flex-col items-center opacity-30 transition-opacity duration-300">
         <div className="w-20 h-12 rounded bg-gray-700 flex items-center justify-center text-xs text-gray-500">
           Out
         </div>
@@ -52,20 +55,29 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
     ? 'bg-red-900'
     : 'bg-gray-800';
 
+  // Active player glow ring
+  const activeRingClass = isHumanActive
+    ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-transparent active-player-glow'
+    : isThinking
+    ? 'ring-2 ring-yellow-400 ring-offset-1 ring-offset-transparent active-player-glow'
+    : '';
+
+  const cardSize = 'sm' as const;
+
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1 transition-all duration-200">
       {/* Hole Cards */}
       <div className="flex gap-0.5">
         {player.holeCards ? (
           player.isHuman ? (
             <>
-              <PlayingCard card={player.holeCards[0]} size="sm" />
-              <PlayingCard card={player.holeCards[1]} size="sm" />
+              <PlayingCard card={player.holeCards[0]} size={cardSize} animate />
+              <PlayingCard card={player.holeCards[1]} size={cardSize} animate />
             </>
           ) : (
             <>
-              <PlayingCard card={player.holeCards[0]} size="sm" faceDown />
-              <PlayingCard card={player.holeCards[1]} size="sm" faceDown />
+              <PlayingCard card={player.holeCards[0]} size={cardSize} faceDown animate />
+              <PlayingCard card={player.holeCards[1]} size={cardSize} faceDown animate />
             </>
           )
         ) : null}
@@ -73,7 +85,7 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
 
       {/* Player Info */}
       <div
-        className={`flex flex-col items-center px-3 py-1 rounded border ${bgColor} ${borderColor} relative ${isActive ? 'ring-1 ring-opacity-50 ring-white' : ''}`}
+        className={`flex flex-col items-center px-3 py-1 rounded border ${bgColor} ${borderColor} ${activeRingClass} relative transition-all duration-200`}
       >
         {/* Position badge */}
         {positionBadge && (
@@ -89,14 +101,20 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
           </div>
         )}
 
-        <span className={`text-xs font-semibold truncate max-w-[80px] ${player.isHuman ? 'text-blue-300' : 'text-white'}`}>
+        <span
+          className={`text-xs font-semibold truncate max-w-[80px] ${
+            player.isHuman ? 'text-blue-300' : 'text-white'
+          }`}
+        >
           {player.name}
         </span>
         <span className="text-xs text-yellow-400">{player.chips.toLocaleString()}</span>
 
-        {/* Current Bet */}
+        {/* Current Bet with slide animation */}
         {player.currentBet > 0 && (
-          <span className="text-[10px] text-green-400">{player.currentBet}</span>
+          <span className="text-[10px] text-green-400 transition-all duration-150">
+            {player.currentBet}
+          </span>
         )}
 
         {/* Status indicators */}
@@ -110,9 +128,9 @@ export function PlayerSeat({ player, isButton }: PlayerSeatProps) {
           <span className="text-[10px] text-yellow-300 animate-pulse">thinking...</span>
         )}
         {isHumanActive && (
-          <span className="text-[10px] text-blue-300 font-bold">YOUR TURN</span>
+          <span className="text-[10px] text-blue-300 font-bold animate-pulse">YOUR TURN</span>
         )}
       </div>
     </div>
   );
-}
+});

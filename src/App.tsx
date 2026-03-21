@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TopBar } from './components/layout/TopBar';
 import { TableArea } from './components/layout/TableArea';
 import { ActionPanel } from './components/layout/ActionPanel';
@@ -16,6 +17,8 @@ export function App() {
   const error = useGameStore((s) => s.error);
   const startGame = useGameStore((s) => s.startGame);
   const resetGame = useGameStore((s) => s.resetGame);
+
+  const [sidePanelOpen, setSidePanelOpen] = useState(false);
 
   const handleStart = (setupConfig: SetupConfig) => {
     const handsPerLevel = BLIND_SPEEDS[setupConfig.blindSpeed];
@@ -52,7 +55,7 @@ export function App() {
           <p className="text-gray-300 text-sm">{error}</p>
           <button
             onClick={handlePlayAgain}
-            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-semibold"
+            className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded font-semibold transition-all duration-150 active:scale-95"
           >
             Back to Setup
           </button>
@@ -74,13 +77,19 @@ export function App() {
   // Game table
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      <TopBar />
+      <TopBar
+        onToggleSidePanel={() => setSidePanelOpen((v) => !v)}
+        sidePanelOpen={sidePanelOpen}
+      />
       <div className="flex flex-1 overflow-hidden">
-        <main className="flex flex-col flex-1 items-center justify-center">
+        <main className="flex flex-col flex-1 items-center justify-center overflow-hidden">
           <TableArea />
           <ActionPanel />
         </main>
-        <SidePanel />
+        <SidePanel
+          mobileOpen={sidePanelOpen}
+          onClose={() => setSidePanelOpen(false)}
+        />
       </div>
     </div>
   );
