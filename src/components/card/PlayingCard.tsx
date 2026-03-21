@@ -17,8 +17,8 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
 
 const SUIT_FILL_COLORS: Record<Suit, string> = {
   spades: '#e5e7eb',
-  hearts: '#dc2626',
-  diamonds: '#dc2626',
+  hearts: '#ef4444',
+  diamonds: '#ef4444',
   clubs: '#e5e7eb',
 };
 
@@ -27,155 +27,101 @@ const RANK_DISPLAY: Record<number, string> = {
   10: '10', 11: 'J', 12: 'Q', 13: 'K', 14: 'A',
 };
 
-// Size map: [svgWidth, svgHeight, tailwindClasses]
-const SIZE_MAP = {
-  sm: { w: 56, h: 78, cls: 'w-14 h-[78px]' },
-  md: { w: 72, h: 100, cls: 'w-18 h-[100px]' },
-  lg: { w: 88, h: 123, cls: 'w-22 h-[123px]' },
+// All cards use a standard 60x84 SVG viewBox for consistent proportions.
+// Only the outer container size changes per size variant.
+const VB_W = 60;
+const VB_H = 84;
+
+const CONTAINER_SIZE = {
+  sm: 'w-[52px] h-[73px]',
+  md: 'w-[68px] h-[95px]',
+  lg: 'w-[88px] h-[123px]',
 };
 
 function FaceDownCard({ size }: { size: 'sm' | 'md' | 'lg' }) {
-  const { w, h, cls } = SIZE_MAP[size];
   return (
     <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className={`${cls} drop-shadow-md select-none`}
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      className={`${CONTAINER_SIZE[size]} drop-shadow-md select-none`}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Card background */}
-      <rect width={w} height={h} rx="4" fill="#1e3a5f" />
-      {/* Inner border */}
-      <rect
-        x="3" y="3"
-        width={w - 6} height={h - 6}
-        rx="2"
-        fill="none"
-        stroke="#4a7ab5"
-        strokeWidth="1"
-      />
-      {/* Diamond pattern */}
-      {Array.from({ length: Math.ceil(h / 8) }).map((_, row) =>
-        Array.from({ length: Math.ceil(w / 8) }).map((_, col) => (
-          <rect
-            key={`${row}-${col}`}
-            x={col * 8 + (row % 2 === 0 ? 0 : 4)}
-            y={row * 8}
-            width="4"
-            height="4"
-            transform={`rotate(45 ${col * 8 + (row % 2 === 0 ? 2 : 6)} ${row * 8 + 2})`}
-            fill="#2d5a8e"
-            opacity="0.6"
-          />
-        ))
-      )}
-      {/* Center suit icon */}
-      <text
-        x={w / 2}
-        y={h / 2 + 5}
-        textAnchor="middle"
-        fill="#4a7ab5"
-        fontSize={size === 'lg' ? '22' : size === 'md' ? '18' : '14'}
-        fontFamily="system-ui"
-      >
-        ♠
-      </text>
+      <rect width={VB_W} height={VB_H} rx="5" fill="#1e3a5f" />
+      <rect x="3" y="3" width={VB_W - 6} height={VB_H - 6} rx="3" fill="none" stroke="#4a7ab5" strokeWidth="1" />
+      {/* Simple cross-hatch pattern */}
+      <defs>
+        <pattern id="cardBack" patternUnits="userSpaceOnUse" width="10" height="10">
+          <path d="M0 5L5 0M5 10L10 5" stroke="#2d5a8e" strokeWidth="0.8" opacity="0.5" />
+        </pattern>
+      </defs>
+      <rect x="5" y="5" width={VB_W - 10} height={VB_H - 10} rx="2" fill="url(#cardBack)" />
+      <text x={VB_W / 2} y={VB_H / 2 + 6} textAnchor="middle" fill="#4a7ab5" fontSize="20" fontFamily="system-ui">♠</text>
     </svg>
   );
 }
 
-function FaceUpCard({
-  card,
-  size,
-}: {
-  card: Card;
-  size: 'sm' | 'md' | 'lg';
-}) {
-  const { w, h, cls } = SIZE_MAP[size];
+function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
   const rank = RANK_DISPLAY[card.rank];
   const suit = SUIT_SYMBOLS[card.suit];
   const color = SUIT_FILL_COLORS[card.suit];
 
-  const isSmall = size === 'sm';
-  const cornerFontSize = isSmall ? 11 : size === 'md' ? 13 : 15;
-  const suitCornerFontSize = isSmall ? 10 : size === 'md' ? 12 : 14;
-  const centerFontSize = isSmall ? 22 : size === 'md' ? 28 : 34;
-  const cornerX = 4;
-  const cornerY = 13;
-  const isRankTen = rank === '10';
-
   return (
     <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className={`${cls} drop-shadow-md select-none`}
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      className={`${CONTAINER_SIZE[size]} drop-shadow-md select-none`}
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Card background */}
-      <rect width={w} height={h} rx="4" fill="#1e293b" />
-      {/* Card border */}
-      <rect
-        width={w} height={h}
-        rx="4"
-        fill="none"
-        stroke="#334155"
-        strokeWidth="0.75"
-      />
+      <rect width={VB_W} height={VB_H} rx="5" fill="#1e293b" />
+      <rect width={VB_W} height={VB_H} rx="5" fill="none" stroke="#475569" strokeWidth="0.75" />
 
       {/* Top-left rank */}
       <text
-        x={cornerX}
-        y={cornerY}
+        x="6" y="17"
         fill={color}
-        fontSize={isRankTen ? cornerFontSize - 1 : cornerFontSize}
+        fontSize={rank === '10' ? '14' : '16'}
         fontWeight="bold"
         fontFamily="system-ui, sans-serif"
-        dominantBaseline="auto"
       >
         {rank}
       </text>
       {/* Top-left suit */}
       <text
-        x={cornerX}
-        y={cornerY + suitCornerFontSize + 1}
+        x="6" y="30"
         fill={color}
-        fontSize={suitCornerFontSize}
+        fontSize="13"
         fontFamily="system-ui, sans-serif"
-        dominantBaseline="auto"
       >
         {suit}
       </text>
 
-      {/* Center suit symbol */}
+      {/* Center suit symbol — large and prominent */}
       <text
-        x={w / 2}
-        y={h / 2 + centerFontSize * 0.35}
+        x={VB_W / 2}
+        y={VB_H / 2 + 10}
         textAnchor="middle"
         fill={color}
-        fontSize={centerFontSize}
+        fontSize="32"
         fontFamily="system-ui, sans-serif"
       >
         {suit}
       </text>
 
-      {/* Bottom-right rank + suit (rotated 180deg) */}
-      <g transform={`rotate(180 ${w / 2} ${h / 2})`}>
+      {/* Bottom-right rank + suit (rotated 180°) */}
+      <g transform={`rotate(180 ${VB_W / 2} ${VB_H / 2})`}>
         <text
-          x={cornerX}
-          y={cornerY}
+          x="6" y="17"
           fill={color}
-          fontSize={isRankTen ? cornerFontSize - 1 : cornerFontSize}
+          fontSize={rank === '10' ? '14' : '16'}
           fontWeight="bold"
           fontFamily="system-ui, sans-serif"
-          dominantBaseline="auto"
         >
           {rank}
         </text>
         <text
-          x={cornerX}
-          y={cornerY + suitCornerFontSize + 1}
+          x="6" y="30"
           fill={color}
-          fontSize={suitCornerFontSize}
+          fontSize="13"
           fontFamily="system-ui, sans-serif"
-          dominantBaseline="auto"
         >
           {suit}
         </text>

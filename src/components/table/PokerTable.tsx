@@ -56,7 +56,7 @@ export const PokerTable = memo(function PokerTable({
             ) : (
               <div
                 key={i}
-                className="w-[72px] h-[100px] rounded"
+                className="w-[68px] h-[95px] rounded"
                 style={{
                   border: '1px solid rgba(255,255,255,0.08)',
                   background: 'rgba(0,0,0,0.2)',
@@ -78,8 +78,8 @@ export const PokerTable = memo(function PokerTable({
             boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
           }}
         >
-          <span className="text-yellow-400 text-xs font-semibold uppercase tracking-wide">POT</span>
-          <span className="text-white font-bold text-base">
+          <span className="text-yellow-400 text-sm font-semibold uppercase tracking-wide">POT</span>
+          <span className="text-white font-bold text-lg">
             {formatAmount(potAmount, bb, displayMode)}
           </span>
         </div>

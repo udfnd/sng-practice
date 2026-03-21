@@ -75,7 +75,7 @@ export const PlayerSeat = memo(function PlayerSeat({
     boxShadow: glowShadow !== 'none' ? glowShadow : '0 2px 8px rgba(0,0,0,0.5)',
     opacity: player.isFolded ? 0.45 : 1,
     transition: 'all 0.2s ease',
-    minWidth: '76px',
+    minWidth: '90px',
   };
 
   const activeRingClass = isHumanActive
@@ -84,7 +84,7 @@ export const PlayerSeat = memo(function PlayerSeat({
     ? 'active-player-glow-yellow'
     : '';
 
-  const cardSize = 'sm' as const;
+  const cardSize = 'md' as const;
 
   return (
     <div className="flex flex-col items-center gap-1 transition-all duration-200">
@@ -139,7 +139,7 @@ export const PlayerSeat = memo(function PlayerSeat({
         {/* Avatar circle + Name */}
         <div className="flex items-center gap-1.5 w-full">
           <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
             style={{
               background: player.isHuman ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'linear-gradient(135deg, #374151, #1f2937)',
               color: '#fff',
@@ -148,28 +148,28 @@ export const PlayerSeat = memo(function PlayerSeat({
             {player.name.charAt(0).toUpperCase()}
           </div>
           <span
-            className="text-xs font-semibold truncate"
-            style={{ color: player.isHuman ? '#93c5fd' : '#e2e8f0', maxWidth: '52px' }}
+            className="text-sm font-semibold truncate"
+            style={{ color: player.isHuman ? '#93c5fd' : '#e2e8f0', maxWidth: '64px' }}
           >
             {player.name}
           </span>
         </div>
 
         {/* Stack */}
-        <span className="text-sm font-bold tabular-nums mt-0.5" style={{ color: '#fcd34d' }}>
+        <span className="text-base font-bold tabular-nums mt-0.5" style={{ color: '#fcd34d' }}>
           {formatAmount(player.chips, bb, displayMode)}
         </span>
 
         {/* Current Bet - prominent */}
         {player.currentBet > 0 && (
           <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full mt-0.5"
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full mt-0.5"
             style={{
               background: 'rgba(250,204,21,0.15)',
               border: '1px solid rgba(250,204,21,0.4)',
             }}
           >
-            <span className="text-sm font-bold transition-all duration-150" style={{ color: '#facc15', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+            <span className="text-base font-bold transition-all duration-150" style={{ color: '#facc15', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
               {formatAmount(player.currentBet, bb, displayMode)}
             </span>
           </div>
@@ -178,20 +178,20 @@ export const PlayerSeat = memo(function PlayerSeat({
         {/* Status indicators */}
         {player.isAllIn && (
           <span
-            className="text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded mt-0.5"
+            className="text-[10px] font-bold tracking-widest px-2 py-0.5 rounded mt-0.5"
             style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }}
           >
             ALL IN
           </span>
         )}
         {player.isFolded && (
-          <span className="text-[9px] font-medium mt-0.5" style={{ color: '#6b7280' }}>FOLDED</span>
+          <span className="text-[10px] font-medium mt-0.5" style={{ color: '#6b7280' }}>FOLDED</span>
         )}
         {isThinking && !player.isFolded && (
-          <span className="text-[9px] animate-pulse mt-0.5" style={{ color: '#fde047' }}>thinking...</span>
+          <span className="text-xs animate-pulse mt-0.5" style={{ color: '#fde047' }}>thinking...</span>
         )}
         {isHumanActive && (
-          <span className="text-[9px] font-bold animate-pulse mt-0.5" style={{ color: '#93c5fd' }}>YOUR TURN</span>
+          <span className="text-xs font-bold animate-pulse mt-0.5" style={{ color: '#93c5fd' }}>YOUR TURN</span>
         )}
       </div>
     </div>

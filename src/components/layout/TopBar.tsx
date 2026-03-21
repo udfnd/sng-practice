@@ -28,21 +28,21 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
           className="flex items-center gap-1.5 px-2 py-1 rounded"
           style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)' }}
         >
-          <span className="text-yellow-400 font-semibold text-xs">
-            L{blindLevel?.level ?? 1}
+          <span className="text-yellow-400 font-bold text-sm">
+            Lv.{blindLevel?.level ?? 1}
           </span>
-          <span className="text-gray-400 text-xs">
+          <span className="text-gray-300 text-sm font-medium">
             {blindLevel?.sb ?? 10}/{blindLevel?.bb ?? 20}
           </span>
           {blindLevel?.ante ? (
-            <span className="text-orange-400 text-xs">({blindLevel.ante})</span>
+            <span className="text-orange-400 text-sm">Ante {blindLevel.ante}</span>
           ) : null}
         </div>
-        <span className="text-gray-500 text-xs">Hand #{handNumber}</span>
+        <span className="text-gray-400 text-sm">Hand #{handNumber}</span>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
         <span
-          className="text-xs px-2 py-0.5 rounded-full"
+          className="text-sm px-2.5 py-0.5 rounded-full font-medium"
           style={{ background: 'rgba(100,116,139,0.2)', color: '#94a3b8' }}
         >
           {activePlayers} players
