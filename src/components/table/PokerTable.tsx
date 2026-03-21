@@ -18,21 +18,21 @@ export const PokerTable = memo(function PokerTable({
 
   return (
     <>
-      {/* Outer rail (wooden border) — horizontal ellipse */}
+      {/* Outer rail (wooden border) — wide horizontal ellipse for 16:9 */}
       <div
         className="absolute rounded-[50%]"
         style={{
-          top: '10%', bottom: '10%', left: '4%', right: '4%',
+          top: '6%', bottom: '6%', left: '2%', right: '2%',
           background: 'linear-gradient(145deg, #a0621f 0%, #6b3f10 50%, #7c4a1a 100%)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5)',
         }}
       />
-      {/* Inner felt surface — horizontal ellipse */}
+      {/* Inner felt surface — wide horizontal ellipse */}
       <div
         className="absolute flex flex-col items-center justify-center gap-3"
         style={{
-          top: 'calc(10% + 6px)', bottom: 'calc(10% + 6px)',
-          left: 'calc(4% + 6px)', right: 'calc(4% + 6px)',
+          top: 'calc(6% + 6px)', bottom: 'calc(6% + 6px)',
+          left: 'calc(2% + 6px)', right: 'calc(2% + 6px)',
           borderRadius: '50%',
           background: 'radial-gradient(ellipse at 40% 35%, #2d6a3f 0%, #1a5c2a 40%, #0f3d1a 100%)',
           boxShadow: 'inset 0 4px 16px rgba(0,0,0,0.4), inset 0 -2px 8px rgba(0,0,0,0.3)',
