@@ -140,24 +140,14 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
 
   try {
     console.log('[Worker] Starting runTournament...');
-    const standings = await runTournament(tournament, actionProvider, onEvent);
+    await runTournament(tournament, actionProvider, onEvent);
 
-    // Flush remaining events and send final state
+    // Flush remaining events and send final state.
+    // NOTE: runTournament already emits TOURNAMENT_END via onEvent, which is
+    // flushed here. Do NOT post a second TOURNAMENT_END — that would cause the
+    // store to process standings twice and corrupt the results screen routing.
     flushPendingEvents();
     postStateUpdate(tournament.gameState, true);
-
-    // Post tournament end standings
-    postMsg({ type: 'GAME_EVENT', event: {
-      type: 'TOURNAMENT_END',
-      timestamp: Date.now(),
-      handNumber: tournament.gameState.handNumber,
-      sequenceIndex: 0,
-      payload: {
-        type: 'TOURNAMENT_END',
-        standings,
-        payouts: [],
-      },
-    }});
   } catch (err) {
     console.error('[Worker] Tournament error:', err);
     const message = err instanceof Error ? err.message : String(err);
