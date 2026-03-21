@@ -40,9 +40,10 @@ export function ActionPanel() {
 
   const handleAllIn = useCallback(() => {
     if (allInConfirm) {
-      // If raise/bet is available use RAISE; otherwise this is a call all-in
-      if (canBetOrRaise) {
+      if (canRaise) {
         submitAction('RAISE', totalChips);
+      } else if (canBet) {
+        submitAction('BET', totalChips);
       } else {
         // canCall only — submit a CALL with the player's full stack (all-in call)
         submitAction('CALL', callAmount);
@@ -52,7 +53,7 @@ export function ActionPanel() {
       setAllInConfirm(true);
       setTimeout(() => setAllInConfirm(false), 3000);
     }
-  }, [allInConfirm, canBetOrRaise, submitAction, totalChips, callAmount]);
+  }, [allInConfirm, canRaise, canBet, submitAction, totalChips, callAmount]);
 
   // Keyboard shortcuts — must be called on EVERY render (no conditional)
   useEffect(() => {
