@@ -5,16 +5,16 @@ import { createInitialGameState } from './state-machine';
  * Default blind schedule (10 levels with BBA).
  */
 export const DEFAULT_BLIND_SCHEDULE: BlindLevel[] = [
-  { level: 1, sb: 10, bb: 20, ante: 5 },
-  { level: 2, sb: 15, bb: 30, ante: 5 },
-  { level: 3, sb: 25, bb: 50, ante: 10 },
-  { level: 4, sb: 50, bb: 100, ante: 15 },
-  { level: 5, sb: 75, bb: 150, ante: 25 },
-  { level: 6, sb: 100, bb: 200, ante: 25 },
-  { level: 7, sb: 150, bb: 300, ante: 50 },
-  { level: 8, sb: 200, bb: 400, ante: 50 },
-  { level: 9, sb: 300, bb: 600, ante: 100 },
-  { level: 10, sb: 500, bb: 1000, ante: 100 },
+  { level: 1, sb: 10, bb: 20, ante: 20 },
+  { level: 2, sb: 15, bb: 30, ante: 30 },
+  { level: 3, sb: 25, bb: 50, ante: 50 },
+  { level: 4, sb: 50, bb: 100, ante: 100 },
+  { level: 5, sb: 75, bb: 150, ante: 150 },
+  { level: 6, sb: 100, bb: 200, ante: 200 },
+  { level: 7, sb: 150, bb: 300, ante: 300 },
+  { level: 8, sb: 200, bb: 400, ante: 400 },
+  { level: 9, sb: 300, bb: 600, ante: 600 },
+  { level: 10, sb: 500, bb: 1000, ante: 1000 },
 ];
 
 /**

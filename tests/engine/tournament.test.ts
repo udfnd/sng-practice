@@ -198,13 +198,13 @@ describe('Tournament Completion', () => {
 describe('M-Ratio', () => {
   it('should calculate correctly for level 1', () => {
     const m = calculateMRatio(1500, DEFAULT_BLIND_SCHEDULE[0]!);
-    // 1500 / (10 + 20 + 5) = 42.86
-    expect(m).toBeCloseTo(42.86, 1);
+    // 1500 / (10 + 20 + 20) = 30.0  (BBA = BB)
+    expect(m).toBeCloseTo(30.0, 1);
   });
 
   it('should calculate correctly for push/fold zone', () => {
     const m = calculateMRatio(1500, DEFAULT_BLIND_SCHEDULE[7]!);
-    // 1500 / (200 + 400 + 50) = 2.31
-    expect(m).toBeCloseTo(2.31, 1);
+    // 1500 / (200 + 400 + 400) = 1.5  (BBA = BB)
+    expect(m).toBeCloseTo(1.5, 1);
   });
 });
