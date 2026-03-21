@@ -14,23 +14,23 @@ function card(notation: string): Card {
 
 describe('analyzeBoardTexture', () => {
   it('should detect dry board (disconnected, rainbow)', () => {
-    expect(analyzeBoardTexture([card('Ah'), card('7d'), card('2c')])).toBe('dry');
+    expect(analyzeBoardTexture([card('Ah'), card('7d'), card('2c')]).category).toBe('dry');
   });
 
   it('should detect wet board (connected + flush draw)', () => {
-    expect(analyzeBoardTexture([card('9h'), card('8h'), card('7d')])).toBe('wet');
+    expect(analyzeBoardTexture([card('9h'), card('8h'), card('7d')]).category).toBe('wet');
   });
 
   it('should detect monotone board (3+ same suit)', () => {
-    expect(analyzeBoardTexture([card('Ah'), card('9h'), card('4h')])).toBe('monotone');
+    expect(analyzeBoardTexture([card('Ah'), card('9h'), card('4h')]).category).toBe('monotone');
   });
 
   it('should detect paired board', () => {
-    expect(analyzeBoardTexture([card('Ks'), card('Kh'), card('7d')])).toBe('paired');
+    expect(analyzeBoardTexture([card('Ks'), card('Kh'), card('7d')]).category).toBe('paired');
   });
 
   it('should handle less than 3 cards', () => {
-    expect(analyzeBoardTexture([card('As'), card('Kh')])).toBe('dry');
+    expect(analyzeBoardTexture([card('As'), card('Kh')]).category).toBe('dry');
   });
 });
 

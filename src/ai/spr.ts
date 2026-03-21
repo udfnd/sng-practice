@@ -26,6 +26,24 @@ export function sprBetSizing(spr: number): number {
 }
 
 /**
+ * Plan bet sizings across multiple streets based on SPR.
+ *
+ * Returns an array of pot fractions (e.g., [0.33, 0.50, 0.66]) to use
+ * on successive streets. The caller picks the appropriate index per street.
+ *
+ * SPR > 8:  3-street plan [33%, 50%, 66%]
+ * SPR 3-8:  2-street plan [50%, 66%] or [66%, all-in]
+ * SPR < 3:  1-street plan [75-100%] or all-in
+ */
+export function planBetSizing(spr: number): number[] {
+  if (spr < 1) return [1.25];                    // Extreme short stack: overbet
+  if (spr < 3) return [1.0];                     // Short stack: pot-size
+  if (spr < 6) return [0.66, 1.0];              // Medium-low SPR: 2 streets
+  if (spr <= 8) return [0.50, 0.66];            // Medium SPR: 2 streets
+  return [0.33, 0.50, 0.66];                    // Deep stack: 3-street plan
+}
+
+/**
  * Range advantage score: how much the board favors the aggressor's range.
  *
  * Returns -1.0 to +1.0 where:

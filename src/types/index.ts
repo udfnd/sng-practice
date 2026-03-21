@@ -95,6 +95,12 @@ export interface AIProfile {
   foldToCBet: number;
   checkRaiseFreq: number;
   bluffFreq: number;
+  /** Frequency of donk betting (leading into aggressor) — 0 to 0.15. Optional. */
+  donkBetFreq?: number;
+  /** Frequency of overbetting — 0 to 0.15. Optional. */
+  overbetFreq?: number;
+  /** River polarization factor 0–1 (1 = fully polarized: only bet tier-1 or bluff). Optional. */
+  riverPolarization?: number;
   icmAwareness: number;
   pushFoldAccuracy: number;
   stackSizeAdjust: number;

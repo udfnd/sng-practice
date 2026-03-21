@@ -202,6 +202,17 @@ export function buildPostflopContext(
   // Opponents: active non-folded players excluding self
   const opponents = activePlayers.filter((p) => p.id !== player.id).length;
 
+  // Milestone 5: BvB detection — heads-up pot between SB and BB
+  const isBvB =
+    opponents === 1 &&
+    activePlayers.length === 2 &&
+    (player.seatIndex === state.sbSeatIndex || player.seatIndex === state.bbSeatIndex) &&
+    activePlayers.some(
+      (p) =>
+        p.id !== player.id &&
+        (p.seatIndex === state.sbSeatIndex || p.seatIndex === state.bbSeatIndex),
+    );
+
   return {
     profile: player.aiProfile!,
     holeCards: holeCards as [typeof holeCards[0], typeof holeCards[1]],
@@ -215,6 +226,7 @@ export function buildPostflopContext(
     bb,
     spr,
     opponents,
+    isBvB,
   };
 }
 
