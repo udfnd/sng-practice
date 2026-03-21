@@ -42,18 +42,18 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
   const panelContent = (
     <div className="flex flex-col h-full">
       {/* Action Log header */}
-      <div className="p-3 border-b border-gray-700 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid #30363d', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <h3 style={{ fontSize: '11px', fontWeight: 600, color: '#6e7681', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
           Action Log
         </h3>
-        {/* Mobile close button */}
         {onClose && (
           <button
             onClick={onClose}
-            className="lg:hidden w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white transition-colors touch-manipulation"
+            className="lg:hidden"
+            style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6e7681', cursor: 'pointer', background: 'none', border: 'none', borderRadius: '4px' }}
             aria-label="Close panel"
           >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -62,18 +62,22 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
       </div>
 
       {/* Log entries */}
-      <div className="flex-1 overflow-y-auto p-3 text-xs text-gray-400 space-y-0.5 min-h-0">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px', minHeight: 0 }}>
         {actionLog.length === 0 ? (
-          <p className="italic">{isPlaying ? 'Game starting...' : 'Game not started'}</p>
+          <p style={{ color: '#6e7681', fontSize: '12px', fontStyle: 'italic', margin: 0 }}>
+            {isPlaying ? 'Game starting...' : 'Game not started'}
+          </p>
         ) : (
           actionLog.map((line, i) => (
             <div
               key={i}
-              className={
-                line.startsWith('---') || line.startsWith('===')
-                  ? 'text-gray-500 font-semibold mt-1'
-                  : 'text-gray-300'
-              }
+              style={{
+                fontSize: '12px',
+                lineHeight: '1.5',
+                color: (line.startsWith('---') || line.startsWith('===')) ? '#6e7681' : '#8b949e',
+                fontWeight: (line.startsWith('---') || line.startsWith('===')) ? 600 : 400,
+                marginTop: (line.startsWith('---') || line.startsWith('===')) ? '4px' : 0,
+              }}
             >
               {line}
             </div>
@@ -85,36 +89,41 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
       {/* Player Stats */}
       {players.length > 0 && (
         <>
-          <div className="p-3 border-t border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+          <div style={{ padding: '8px 12px', borderTop: '1px solid #30363d', flexShrink: 0 }}>
+            <h3 style={{ fontSize: '11px', fontWeight: 600, color: '#6e7681', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
               Stats
             </h3>
           </div>
-          <div className="p-2 overflow-y-auto">
-            <table className="w-full text-xs">
+          <div style={{ padding: '0 8px 8px', overflowY: 'auto', flexShrink: 0 }}>
+            <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
               <thead>
-                <tr className="text-gray-500 border-b border-gray-700">
-                  <th className="text-left py-1 pl-1">Player</th>
-                  <th className="text-center py-1">VPIP</th>
-                  <th className="text-center py-1">PFR</th>
-                  <th className="text-center py-1">3B</th>
+                <tr style={{ color: '#6e7681', borderBottom: '1px solid #30363d' }}>
+                  <th style={{ textAlign: 'left', padding: '3px 4px', fontWeight: 500 }}>Player</th>
+                  <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 500 }}>VPIP</th>
+                  <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 500 }}>PFR</th>
+                  <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 500 }}>3B</th>
                 </tr>
               </thead>
               <tbody>
                 {players
                   .filter((p) => p.isActive)
                   .map((p) => (
-                    <tr key={p.id} className="border-b border-gray-700/50">
+                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(48,54,61,0.5)' }}>
                       <td
-                        className={`py-1 pl-1 truncate max-w-[80px] ${
-                          p.isHuman ? 'text-blue-400' : 'text-gray-300'
-                        }`}
+                        style={{
+                          padding: '3px 4px',
+                          maxWidth: '80px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          color: p.isHuman ? '#58a6ff' : '#8b949e',
+                        }}
                       >
                         {p.name}
                       </td>
-                      <td className="text-center text-gray-400">{calcVPIP(p.stats)}</td>
-                      <td className="text-center text-gray-400">{calcPFR(p.stats)}</td>
-                      <td className="text-center text-gray-400">{calc3Bet(p.stats)}</td>
+                      <td style={{ textAlign: 'center', color: '#6e7681', padding: '3px 4px' }}>{calcVPIP(p.stats)}</td>
+                      <td style={{ textAlign: 'center', color: '#6e7681', padding: '3px 4px' }}>{calcPFR(p.stats)}</td>
+                      <td style={{ textAlign: 'center', color: '#6e7681', padding: '3px 4px' }}>{calc3Bet(p.stats)}</td>
                     </tr>
                   ))}
               </tbody>
@@ -128,21 +137,26 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
   return (
     <>
       {/* Desktop sidebar: always visible on lg+ */}
-      <aside className="hidden lg:flex flex-col w-72 bg-gray-800 border-l border-gray-700 overflow-y-auto">
+      <aside
+        className="hidden lg:flex flex-col"
+        style={{ width: '240px', background: '#161b22', borderLeft: '1px solid #30363d', overflow: 'hidden' }}
+      >
         {panelContent}
       </aside>
 
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
-          {/* Backdrop */}
           <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/60 animate-fade-in"
+            className="lg:hidden fixed inset-0 z-40 animate-fade-in"
+            style={{ background: 'rgba(0,0,0,0.65)' }}
             onClick={onClose}
             aria-hidden="true"
           />
-          {/* Slide-in panel */}
-          <div className="lg:hidden fixed right-0 top-0 bottom-0 z-50 w-72 bg-gray-800 border-l border-gray-700 flex flex-col slide-in-right">
+          <div
+            className="lg:hidden fixed right-0 top-0 bottom-0 z-50 slide-in-right flex flex-col"
+            style={{ width: '240px', background: '#161b22', borderLeft: '1px solid #30363d' }}
+          >
             {panelContent}
           </div>
         </>

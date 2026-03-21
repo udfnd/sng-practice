@@ -16,68 +16,108 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
 
   return (
     <header
-      className="flex items-center justify-between px-3 sm:px-4 py-2 text-sm"
       style={{
-        background: 'linear-gradient(180deg, #1e2736 0%, #161d27 100%)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        height: '40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 14px',
+        background: '#161b22',
+        borderBottom: '1px solid #30363d',
+        flexShrink: 0,
       }}
     >
-      <div className="flex items-center gap-3 sm:gap-4">
+      {/* Left: blind level info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div
-          className="flex items-center gap-1.5 px-2 py-1 rounded"
-          style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '2px 8px',
+            borderRadius: '5px',
+            background: 'rgba(251,191,36,0.1)',
+            border: '1px solid rgba(251,191,36,0.22)',
+          }}
         >
-          <span className="text-yellow-400 font-bold text-sm">
+          <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '12px' }}>
             Lv.{blindLevel?.level ?? 1}
           </span>
-          <span className="text-gray-300 text-sm font-medium">
+          <span style={{ color: '#8b949e', fontSize: '12px', fontWeight: 500 }}>
             {blindLevel?.sb ?? 10}/{blindLevel?.bb ?? 20}
           </span>
           {blindLevel?.ante ? (
-            <span className="text-orange-400 text-sm">Ante {blindLevel.ante}</span>
+            <span style={{ color: '#fb923c', fontSize: '12px' }}>· Ante {blindLevel.ante}</span>
           ) : null}
         </div>
-        <span className="text-gray-400 text-sm">Hand #{handNumber}</span>
       </div>
-      <div className="flex items-center gap-2 sm:gap-3">
+
+      {/* Center: hand number */}
+      <span style={{ color: '#6e7681', fontSize: '12px', fontWeight: 500 }}>
+        Hand #{handNumber}
+      </span>
+
+      {/* Right: players + display mode + mobile toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span
-          className="text-sm px-2.5 py-0.5 rounded-full font-medium"
-          style={{ background: 'rgba(100,116,139,0.2)', color: '#94a3b8' }}
+          style={{
+            fontSize: '12px',
+            fontWeight: 500,
+            color: '#8b949e',
+            padding: '2px 8px',
+            borderRadius: '99px',
+            background: 'rgba(110,118,129,0.12)',
+          }}
         >
-          {activePlayers} players
+          {activePlayers}p
         </span>
 
-        {/* BB / Chips display mode toggle */}
         <button
           onClick={toggleDisplayMode}
-          className={`flex items-center justify-center min-w-[40px] h-7 px-2 rounded text-xs font-semibold transition-all duration-150 active:scale-95 touch-manipulation ${
-            displayMode === 'bb'
-              ? 'bg-yellow-500 text-black'
-              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-          }`}
+          style={{
+            height: '26px',
+            minWidth: '36px',
+            padding: '0 8px',
+            borderRadius: '5px',
+            fontSize: '11px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: 'none',
+            transition: 'background 0.1s',
+            background: displayMode === 'bb' ? '#fbbf24' : '#21262d',
+            color: displayMode === 'bb' ? '#000' : '#8b949e',
+          }}
           aria-label={displayMode === 'bb' ? 'Switch to chip display' : 'Switch to BB display'}
           title={displayMode === 'bb' ? 'Showing amounts in BB — click to switch to chips' : 'Showing amounts in chips — click to switch to BB'}
         >
           {displayMode === 'bb' ? 'BB' : '$'}
         </button>
 
-        {/* Mobile side panel toggle */}
         {onToggleSidePanel && (
           <button
             onClick={onToggleSidePanel}
-            className="lg:hidden flex items-center justify-center w-8 h-8 rounded bg-gray-700 hover:bg-gray-600 transition-colors duration-150 active:scale-95 touch-manipulation"
+            className="lg:hidden"
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '5px',
+              background: '#21262d',
+              border: '1px solid #30363d',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#8b949e',
+            }}
             aria-label={sidePanelOpen ? 'Close stats panel' : 'Open stats panel'}
           >
             {sidePanelOpen ? (
-              // X icon
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             ) : (
-              // Bar chart icon
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />

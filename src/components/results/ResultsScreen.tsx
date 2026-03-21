@@ -28,9 +28,9 @@ export function ResultsScreen({ onPlayAgain }: ResultsScreenProps) {
   });
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-md bg-gray-800 rounded-lg p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-center">Tournament Complete</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4" style={{ background: '#0d1117' }}>
+      <div className="w-full max-w-md rounded-lg p-6 space-y-6" style={{ background: '#161b22', border: '1px solid #30363d' }}>
+        <h1 className="text-2xl font-bold text-center" style={{ color: '#e6edf3' }}>Tournament Complete</h1>
 
         {humanStanding && (
           <div className="text-center py-4 bg-gray-700 rounded-lg">

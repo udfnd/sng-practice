@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,21 +9,27 @@
   --felt-mid: #1a5c2a;
   --felt-dark: #0f3d1a;
   --felt-edge: #0a2a12;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
   --bg-primary: #0d1117;
-  --bg-surface: #161d27;
-  --bg-surface-2: #1c2530;
-  --table-rail: #7c4a1a;
-  --table-rail-light: #a0621f;
+  --bg-surface: #161b22;
+  --bg-surface-2: #1c2230;
+  --border-subtle: #30363d;
+  --accent-yellow: #fbbf24;
+  --accent-red: #ef4444;
+  --accent-blue: #58a6ff;
+  --accent-green: #3fb950;
+  --table-rail: #6b3f10;
+  --table-rail-light: #8b5520;
 }
 
 body {
-  @apply font-poker antialiased;
-  background: radial-gradient(ellipse at top, #1a2035 0%, #0d1117 60%);
-  background-attachment: fixed;
-  color: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0d1117;
+  color: #e6edf3;
   margin: 0;
   min-height: 100vh;
 }

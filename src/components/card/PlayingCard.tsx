@@ -16,10 +16,10 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
 };
 
 const SUIT_FILL_COLORS: Record<Suit, string> = {
-  spades: '#e5e7eb',
+  spades: '#e2e8f0',
   hearts: '#ef4444',
   diamonds: '#ef4444',
-  clubs: '#e5e7eb',
+  clubs: '#e2e8f0',
 };
 
 const RANK_DISPLAY: Record<number, string> = {
@@ -72,23 +72,23 @@ function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
     >
       {/* Card background */}
       <rect width={VB_W} height={VB_H} rx="5" fill="#1e293b" />
-      <rect width={VB_W} height={VB_H} rx="5" fill="none" stroke="#475569" strokeWidth="0.75" />
+      <rect width={VB_W} height={VB_H} rx="5" fill="none" stroke="#334155" strokeWidth="0.75" />
 
       {/* Top-left rank */}
       <text
-        x="6" y="17"
+        x="5" y="17"
         fill={color}
-        fontSize={rank === '10' ? '14' : '16'}
+        fontSize={rank === '10' ? '13' : '15'}
         fontWeight="bold"
-        fontFamily="system-ui, sans-serif"
+        fontFamily="Inter, system-ui, sans-serif"
       >
         {rank}
       </text>
       {/* Top-left suit */}
       <text
-        x="6" y="30"
+        x="5" y="29"
         fill={color}
-        fontSize="13"
+        fontSize="12"
         fontFamily="system-ui, sans-serif"
       >
         {suit}
@@ -97,10 +97,10 @@ function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
       {/* Center suit symbol — large and prominent */}
       <text
         x={VB_W / 2}
-        y={VB_H / 2 + 10}
+        y={VB_H / 2 + 11}
         textAnchor="middle"
         fill={color}
-        fontSize="32"
+        fontSize="30"
         fontFamily="system-ui, sans-serif"
       >
         {suit}
@@ -109,18 +109,18 @@ function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
       {/* Bottom-right rank + suit (rotated 180°) */}
       <g transform={`rotate(180 ${VB_W / 2} ${VB_H / 2})`}>
         <text
-          x="6" y="17"
+          x="5" y="17"
           fill={color}
-          fontSize={rank === '10' ? '14' : '16'}
+          fontSize={rank === '10' ? '13' : '15'}
           fontWeight="bold"
-          fontFamily="system-ui, sans-serif"
+          fontFamily="Inter, system-ui, sans-serif"
         >
           {rank}
         </text>
         <text
-          x="6" y="30"
+          x="5" y="29"
           fill={color}
-          fontSize="13"
+          fontSize="12"
           fontFamily="system-ui, sans-serif"
         >
           {suit}

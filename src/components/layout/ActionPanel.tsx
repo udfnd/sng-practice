@@ -45,7 +45,6 @@ export function ActionPanel() {
       } else if (canBet) {
         submitAction('BET', totalChips);
       } else {
-        // canCall only — submit a CALL with the player's full stack (all-in call)
         submitAction('CALL', callAmount);
       }
       setAllInConfirm(false);
@@ -55,45 +54,37 @@ export function ActionPanel() {
     }
   }, [allInConfirm, canRaise, canBet, submitAction, totalChips, callAmount]);
 
-  // Keyboard shortcuts — must be called on EVERY render (no conditional)
   useEffect(() => {
     if (!isHumanTurn) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
-
       switch (e.key.toUpperCase()) {
-        case 'F':
-          if (canFold) submitAction('FOLD', 0);
-          break;
+        case 'F': if (canFold) submitAction('FOLD', 0); break;
         case 'C':
           if (canCheck) submitAction('CHECK', 0);
           else if (canCall) submitAction('CALL', callAmount);
           break;
-        case 'R':
-          if (canBetOrRaise) handleBetOrRaise(currentRaiseAmt);
-          break;
-        case 'A':
-          if (canBetOrRaise || canCall) handleAllIn();
-          break;
+        case 'R': if (canBetOrRaise) handleBetOrRaise(currentRaiseAmt); break;
+        case 'A': if (canBetOrRaise || canCall) handleAllIn(); break;
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isHumanTurn, canFold, canCheck, canCall, canBetOrRaise, currentRaiseAmt, callAmount, allInConfirm, submitAction, handleBetOrRaise, handleAllIn]);
 
-  // Early returns AFTER all hooks
   if (!isPlaying) return <div className="h-full" />;
 
   if (!isHumanTurn || !humanPlayer || !gameState) {
     return (
       <div
-        className="flex items-center justify-center h-full safe-bottom"
-        style={{ color: '#64748b' }}
+        className="flex items-center justify-center h-full"
+        style={{
+          background: 'linear-gradient(180deg, #161b22 0%, #0d1117 100%)',
+          borderTop: '1px solid #30363d',
+        }}
       >
-        <span className="text-sm">Waiting for action...</span>
+        <span style={{ color: '#6e7681', fontSize: '13px' }}>Waiting for action...</span>
       </div>
     );
   }
@@ -118,107 +109,135 @@ export function ActionPanel() {
     { label: '3 BB', bb: 3 },
   ];
 
-  const btnBase =
-    'min-h-14 min-w-[90px] px-4 py-2 rounded-lg font-bold text-sm transition-all duration-150 active:scale-95 select-none touch-manipulation focus:outline-none focus:ring-2 focus:ring-offset-1 text-center';
-  const presetBtnClass =
-    'min-h-10 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 active:scale-95 touch-manipulation focus:outline-none';
+  // Shared button base styles
+  const btnStyle: React.CSSProperties = {
+    height: '44px',
+    minWidth: '80px',
+    padding: '0 16px',
+    borderRadius: '8px',
+    fontWeight: 700,
+    fontSize: '13px',
+    cursor: 'pointer',
+    border: 'none',
+    transition: 'filter 0.1s ease, transform 0.1s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '4px',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  };
+
+  const keyHint = (key: string) => (
+    <span style={{ fontSize: '10px', opacity: 0.45, fontWeight: 400 }}>[{key}]</span>
+  );
+
+  const presetBtnStyle: React.CSSProperties = {
+    height: '28px',
+    padding: '0 10px',
+    borderRadius: '5px',
+    fontSize: '11px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    border: '1px solid #30363d',
+    background: '#1c2230',
+    color: '#8b949e',
+    transition: 'background 0.1s ease',
+    whiteSpace: 'nowrap',
+  };
 
   return (
     <div
-      className="flex flex-col gap-2 py-3 px-4 rounded-xl mx-2 sm:mx-4 mb-2 sm:mb-4 safe-bottom"
       style={{
-        background: 'linear-gradient(180deg, #1a2130 0%, #141b24 100%)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.3)',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '6px 16px 8px',
+        background: 'linear-gradient(180deg, #161b22 0%, #0d1117 100%)',
+        borderTop: '1px solid #30363d',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.35)',
       }}
     >
-      {/* Main action buttons */}
-      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+      {/* Main action buttons row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         {canFold && (
           <button
             onClick={() => { submitAction('FOLD', 0); setAllInConfirm(false); }}
-            className={`${btnBase} flex-1 sm:flex-none focus:ring-red-500`}
-            style={{
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-              color: '#fff',
-              boxShadow: '0 2px 8px rgba(239,68,68,0.3)',
-            }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #c0392b, #a93226)', color: '#fff' }}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
             aria-label="Fold hand (F)"
           >
-            Fold <span className="text-xs opacity-50 font-normal ml-1">[F]</span>
+            Fold {keyHint('F')}
           </button>
         )}
 
         {canCheck && (
           <button
             onClick={() => { submitAction('CHECK', 0); setAllInConfirm(false); }}
-            className={`${btnBase} flex-1 sm:flex-none focus:ring-green-500`}
-            style={{
-              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-              color: '#fff',
-              boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
-            }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #27ae60, #1e8449)', color: '#fff' }}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
             aria-label="Check (C)"
           >
-            Check <span className="text-xs opacity-50 font-normal ml-1">[C]</span>
+            Check {keyHint('C')}
           </button>
         )}
 
         {canCall && (
           <button
             onClick={() => { submitAction('CALL', callAmount); setAllInConfirm(false); }}
-            className={`${btnBase} flex-1 sm:flex-none focus:ring-blue-500`}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              color: '#fff',
-              boxShadow: '0 2px 8px rgba(59,130,246,0.3)',
-            }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #2980b9, #2471a3)', color: '#fff' }}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
             aria-label={`Call ${formatAmount(callAmount, bb, displayMode)} (C)`}
           >
-            Call {formatAmount(callAmount, bb, displayMode)}
-            <span className="text-xs opacity-50 font-normal ml-1">[C]</span>
+            Call {formatAmount(callAmount, bb, displayMode)} {keyHint('C')}
           </button>
         )}
 
         {canBetOrRaise && (
           <button
             onClick={() => handleBetOrRaise(currentRaiseAmt)}
-            className={`${btnBase} flex-1 sm:flex-none focus:ring-yellow-500`}
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-              color: '#000',
-              boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
-            }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #e67e22, #ca6f1e)', color: '#fff' }}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+            onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
             aria-label={`${canRaise ? 'Raise' : 'Bet'} ${formatAmount(currentRaiseAmt, bb, displayMode)} (R)`}
           >
-            {canRaise ? 'Raise' : 'Bet'} {formatAmount(currentRaiseAmt, bb, displayMode)}
-            <span className="text-xs opacity-50 font-normal ml-1">[R]</span>
+            {canRaise ? 'Raise' : 'Bet'} {formatAmount(currentRaiseAmt, bb, displayMode)} {keyHint('R')}
           </button>
         )}
 
+        {/* All-in — always last, right-aligned */}
         <button
           onClick={handleAllIn}
-          className={`${btnBase} ml-auto disabled:opacity-40 disabled:cursor-not-allowed focus:ring-red-500`}
-          style={{
-            background: allInConfirm
-              ? 'linear-gradient(135deg, #dc2626, #b91c1c)'
-              : 'linear-gradient(135deg, #7f1d1d, #5b1111)',
-            color: '#fff',
-            border: allInConfirm ? '2px solid #ef4444' : '1px solid rgba(239,68,68,0.3)',
-            boxShadow: allInConfirm ? '0 0 12px rgba(239,68,68,0.5)' : 'none',
-          }}
           disabled={!canBetOrRaise && !canCall}
+          style={{
+            ...btnStyle,
+            marginLeft: 'auto',
+            background: allInConfirm
+              ? 'linear-gradient(135deg, #922b21, #7b241c)'
+              : 'linear-gradient(135deg, #641e16, #4a1311)',
+            color: '#fff',
+            border: allInConfirm ? '1.5px solid #ef4444' : '1px solid rgba(239,68,68,0.25)',
+            boxShadow: allInConfirm ? '0 0 12px rgba(239,68,68,0.45)' : 'none',
+            opacity: (!canBetOrRaise && !canCall) ? 0.38 : 1,
+          }}
+          onMouseEnter={(e) => { if (!(!canBetOrRaise && !canCall)) e.currentTarget.style.filter = 'brightness(1.15)'; }}
+          onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
           aria-label={`All-in ${formatAmount(humanPlayer.chips, bb, displayMode)} (A)`}
         >
           {allInConfirm ? 'Confirm?' : `All-In ${formatAmount(humanPlayer.chips, bb, displayMode)}`}
-          <span className="text-xs opacity-50 font-normal ml-1">[A]</span>
+          {!allInConfirm && keyHint('A')}
         </button>
       </div>
 
-      {/* Bet/Raise slider and presets */}
+      {/* Bet/Raise slider row */}
       {canBetOrRaise && effectiveMax > effectiveMin && (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
               type="range"
               min={sliderMin}
@@ -226,19 +245,25 @@ export function ActionPanel() {
               step={sliderStep}
               value={sliderValue}
               onChange={handleSliderChange}
-              className="flex-1"
-              style={{ height: '48px', cursor: 'pointer' }}
+              style={{ flex: 1, cursor: 'pointer' }}
               aria-label="Bet amount slider"
             />
             <span
-              className="text-sm w-20 text-right tabular-nums font-mono font-bold"
-              style={{ color: '#f1f5f9' }}
+              style={{
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#e6edf3',
+                fontVariantNumeric: 'tabular-nums',
+                minWidth: '72px',
+                textAlign: 'right',
+              }}
             >
               {formatAmount(currentRaiseAmt, bb, displayMode)}
             </span>
           </div>
 
-          <div className="flex gap-1.5 flex-wrap">
+          {/* Preset buttons */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {isBBMode ? (
               <>
                 {bbPresets.map(({ label, bb: bbAmt }) => {
@@ -248,8 +273,9 @@ export function ActionPanel() {
                     <button
                       key={label}
                       onClick={() => setRaiseAmount(clampChips(chips))}
-                      className={presetBtnClass}
-                      style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                      style={presetBtnStyle}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                     >
                       {label}
                     </button>
@@ -259,15 +285,17 @@ export function ActionPanel() {
                   <>
                     <button
                       onClick={() => setRaiseAmount(clampChips(Math.floor(pot / 2)))}
-                      className={presetBtnClass}
-                      style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                      style={presetBtnStyle}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                     >
                       1/2
                     </button>
                     <button
                       onClick={() => setRaiseAmount(clampChips(pot))}
-                      className={presetBtnClass}
-                      style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                      style={presetBtnStyle}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                     >
                       Pot
                     </button>
@@ -279,22 +307,25 @@ export function ActionPanel() {
                 <>
                   <button
                     onClick={() => setRaiseAmount(clampChips(Math.floor(pot / 2)))}
-                    className={presetBtnClass}
-                    style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                    style={presetBtnStyle}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                   >
                     1/2
                   </button>
                   <button
                     onClick={() => setRaiseAmount(clampChips(Math.floor((pot * 3) / 4)))}
-                    className={presetBtnClass}
-                    style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                    style={presetBtnStyle}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                   >
                     3/4
                   </button>
                   <button
                     onClick={() => setRaiseAmount(clampChips(pot))}
-                    className={presetBtnClass}
-                    style={{ background: '#1c2530', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.3)' }}
+                    style={presetBtnStyle}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
                   >
                     Pot
                   </button>

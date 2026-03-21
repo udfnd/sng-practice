@@ -29,10 +29,10 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
-      <div className="w-full max-w-lg bg-gray-800 rounded-lg p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-center">Texas Hold'em SNG</h1>
-        <h2 className="text-sm text-gray-400 text-center">8-Max Practice Tool</h2>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4" style={{ background: '#0d1117' }}>
+      <div className="w-full max-w-lg rounded-lg p-6 space-y-6" style={{ background: '#161b22', border: '1px solid #30363d' }}>
+        <h1 className="text-2xl font-bold text-center" style={{ color: '#e6edf3' }}>Texas Hold'em SNG</h1>
+        <h2 className="text-sm text-center" style={{ color: '#8b949e' }}>8-Max Practice Tool</h2>
 
         {/* Starting Chips */}
         <div>

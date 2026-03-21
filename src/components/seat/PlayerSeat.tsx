@@ -24,7 +24,6 @@ export const PlayerSeat = memo(function PlayerSeat({
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
 
-  // Determine position badge
   const positionBadge = isButton
     ? 'BTN'
     : player.seatIndex === sbSeat
@@ -35,169 +34,259 @@ export const PlayerSeat = memo(function PlayerSeat({
 
   if (!player.isActive) {
     return (
-      <div className="flex flex-col items-center opacity-20 transition-opacity duration-300">
-        <div
-          className="w-20 h-10 rounded-xl flex items-center justify-center text-xs font-medium"
-          style={{ background: '#0d1117', color: '#374151', border: '1px solid #1f2937' }}
-        >
-          Empty
-        </div>
+      <div
+        style={{
+          width: '88px',
+          height: '36px',
+          borderRadius: '8px',
+          background: '#0d1117',
+          border: '1px solid #21262d',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0.25,
+        }}
+      >
+        <span style={{ color: '#6e7681', fontSize: '11px' }}>Empty</span>
       </div>
     );
   }
 
-  // Border color based on player state
-  let borderColor = 'rgba(255,255,255,0.1)';
-  let bgColor = player.isFolded
-    ? 'rgba(13,17,23,0.7)'
-    : player.isAllIn
-    ? 'rgba(127,29,29,0.5)'
-    : 'rgba(22,29,39,0.92)';
-  let glowShadow = 'none';
+  // Border & glow state
+  let borderColor = '#30363d';
+  let boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+  let bgColor = '#161b22';
 
-  if (isHumanActive) {
-    borderColor = '#3b82f6';
-    glowShadow = '0 0 0 3px rgba(59,130,246,0.35), 0 4px 12px rgba(0,0,0,0.5)';
-  } else if (isThinking) {
-    borderColor = '#eab308';
-    glowShadow = '0 0 0 3px rgba(234,179,8,0.35), 0 4px 12px rgba(0,0,0,0.5)';
+  if (player.isFolded) {
+    bgColor = 'rgba(13,17,23,0.75)';
   } else if (player.isAllIn) {
+    bgColor = 'rgba(127,29,29,0.45)';
     borderColor = '#ef4444';
-    glowShadow = '0 0 0 2px rgba(239,68,68,0.3), 0 4px 8px rgba(0,0,0,0.5)';
+    boxShadow = '0 0 0 2px rgba(239,68,68,0.25), 0 2px 8px rgba(0,0,0,0.5)';
   }
 
-  const seatStyle: React.CSSProperties = {
-    background: bgColor,
-    border: `1.5px solid ${borderColor}`,
-    borderRadius: '14px',
-    padding: '5px 8px',
-    position: 'relative' as const,
-    boxShadow: glowShadow !== 'none' ? glowShadow : '0 2px 8px rgba(0,0,0,0.5)',
-    opacity: player.isFolded ? 0.45 : 1,
-    transition: 'all 0.2s ease',
-    minWidth: '90px',
-  };
+  if (isHumanActive) {
+    borderColor = '#58a6ff';
+    boxShadow = '0 0 0 3px rgba(88,166,255,0.3), 0 4px 12px rgba(0,0,0,0.5)';
+  } else if (isThinking) {
+    borderColor = '#fbbf24';
+    boxShadow = '0 0 0 3px rgba(251,191,36,0.3), 0 4px 12px rgba(0,0,0,0.5)';
+  }
 
-  const activeRingClass = isHumanActive
+  const animClass = isHumanActive
     ? 'active-player-glow'
     : isThinking
     ? 'active-player-glow-yellow'
     : '';
 
-  const cardSize = 'sm' as const;
+  const isShowdownPhase = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
+  const isInHand = !player.isFolded;
+  const showFaceUp = player.isHuman
+    || (isShowdownPhase && isInHand)
+    || (player.isAllIn && isInHand);
+
+  const positionBadgeColor =
+    positionBadge === 'BTN' ? '#d97706' :
+    positionBadge === 'SB'  ? '#dc2626' :
+    '#1d4ed8';
+
+  const seatStyle: React.CSSProperties = {
+    background: bgColor,
+    border: `1.5px solid ${borderColor}`,
+    borderRadius: '10px',
+    padding: '5px 7px',
+    position: 'relative',
+    boxShadow,
+    opacity: player.isFolded ? 0.42 : 1,
+    transition: 'border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease',
+    minWidth: '88px',
+    maxWidth: '140px',
+  };
 
   return (
-    <div className="flex flex-col items-center gap-0.5 transition-all duration-200">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
       {/* Hole Cards */}
-      <div className="flex gap-0.5" style={{ filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.6))' }}>
-        {player.holeCards ? (() => {
-          // Always show face-up for:
-          // 1. Human player (always sees own cards)
-          // 2. Showdown / Hand Complete phase (all non-folded players)
-          // 3. All-in and not folded (early showdown / runout)
-          const isShowdownPhase = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
-          const isInHand = !player.isFolded;
-          const showFaceUp = player.isHuman
-            || (isShowdownPhase && isInHand)
-            || (player.isAllIn && isInHand);
-          return (
-            <>
-              <PlayingCard card={player.holeCards[0]} size={cardSize} faceDown={!showFaceUp} animate />
-              <PlayingCard card={player.holeCards[1]} size={cardSize} faceDown={!showFaceUp} animate />
-            </>
-          );
-        })() : null}
-      </div>
+      {player.holeCards && (
+        <div style={{ display: 'flex', gap: '2px', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))' }}>
+          <PlayingCard card={player.holeCards[0]} size="sm" faceDown={!showFaceUp} animate />
+          <PlayingCard card={player.holeCards[1]} size="sm" faceDown={!showFaceUp} animate />
+        </div>
+      )}
 
       {/* Player Info Badge */}
-      <div
-        className={`flex flex-col items-center ${activeRingClass} transition-all duration-200`}
-        style={seatStyle}
-      >
-        {/* Position badge */}
+      <div className={animClass} style={seatStyle}>
+        {/* Position label pill */}
         {positionBadge && (
           <div
-            className="absolute -top-2 -left-2 px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wide"
             style={{
-              background: positionBadge === 'BTN' ? '#d97706' : positionBadge === 'SB' ? '#dc2626' : '#1d4ed8',
+              position: 'absolute',
+              top: '-9px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: positionBadgeColor,
               color: '#fff',
+              fontSize: '9px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              padding: '1px 5px',
+              borderRadius: '4px',
               boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              whiteSpace: 'nowrap',
             }}
           >
             {positionBadge}
           </div>
         )}
 
-        {/* Dealer Button */}
+        {/* Dealer button chip */}
         {isButton && (
           <div
-            className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-black text-[10px] font-bold flex items-center justify-center"
             style={{
+              position: 'absolute',
+              top: '-9px',
+              right: '-9px',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
               background: 'linear-gradient(135deg, #fcd34d, #d97706)',
               border: '1.5px solid #b45309',
               boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '9px',
+              fontWeight: 700,
+              color: '#000',
             }}
           >
             D
           </div>
         )}
 
-        {/* Avatar circle + Name */}
-        <div className="flex items-center gap-1.5 w-full">
+        {/* Name row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%' }}>
           <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
             style={{
-              background: player.isHuman ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'linear-gradient(135deg, #374151, #1f2937)',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              background: player.isHuman
+                ? 'linear-gradient(135deg, #2563eb, #1d4ed8)'
+                : 'linear-gradient(135deg, #374151, #1f2937)',
               color: '#fff',
+              fontSize: '9px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {player.name.charAt(0).toUpperCase()}
           </div>
           <span
-            className="text-sm font-semibold truncate"
-            style={{ color: player.isHuman ? '#93c5fd' : '#e2e8f0', maxWidth: '64px' }}
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: player.isHuman ? '#93c5fd' : '#e6edf3',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              maxWidth: '68px',
+            }}
           >
             {player.name}
           </span>
         </div>
 
         {/* Stack */}
-        <span className="text-base font-bold tabular-nums mt-0.5" style={{ color: '#fcd34d' }}>
+        <span
+          style={{
+            fontSize: '13px',
+            fontWeight: 700,
+            color: '#fbbf24',
+            fontVariantNumeric: 'tabular-nums',
+            marginTop: '2px',
+            display: 'block',
+          }}
+        >
           {formatAmount(player.chips, bb, displayMode)}
         </span>
 
-        {/* Current Bet - prominent */}
+        {/* Current bet badge */}
         {player.currentBet > 0 && (
           <div
-            className="flex items-center gap-1 px-2.5 py-0.5 rounded-full mt-0.5"
             style={{
-              background: 'rgba(250,204,21,0.15)',
-              border: '1px solid rgba(250,204,21,0.4)',
+              marginTop: '2px',
+              padding: '1px 7px',
+              borderRadius: '99px',
+              background: 'rgba(251,191,36,0.14)',
+              border: '1px solid rgba(251,191,36,0.38)',
+              display: 'inline-flex',
+              alignItems: 'center',
             }}
           >
-            <span className="text-base font-bold transition-all duration-150" style={{ color: '#facc15', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#fbbf24',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
               {formatAmount(player.currentBet, bb, displayMode)}
             </span>
           </div>
         )}
 
-        {/* Status indicators */}
+        {/* Status badges — show at most one */}
         {player.isAllIn && (
           <span
-            className="text-[10px] font-bold tracking-widest px-2 py-0.5 rounded mt-0.5"
-            style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }}
+            style={{
+              marginTop: '2px',
+              fontSize: '9px',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              background: 'rgba(239,68,68,0.18)',
+              color: '#f87171',
+              border: '1px solid rgba(239,68,68,0.35)',
+              display: 'block',
+              textAlign: 'center',
+            }}
           >
             ALL IN
           </span>
         )}
-        {player.isFolded && (
-          <span className="text-[10px] font-medium mt-0.5" style={{ color: '#6b7280' }}>FOLDED</span>
+        {!player.isAllIn && player.isFolded && (
+          <span
+            style={{
+              marginTop: '2px',
+              fontSize: '10px',
+              color: '#6e7681',
+              display: 'block',
+              textAlign: 'center',
+            }}
+          >
+            FOLDED
+          </span>
         )}
-        {isThinking && !player.isFolded && (
-          <span className="text-xs animate-pulse mt-0.5" style={{ color: '#fde047' }}>thinking...</span>
+        {!player.isAllIn && !player.isFolded && isThinking && (
+          <span
+            className="animate-pulse"
+            style={{ marginTop: '2px', fontSize: '10px', color: '#fbbf24', display: 'block', textAlign: 'center' }}
+          >
+            thinking...
+          </span>
         )}
-        {isHumanActive && (
-          <span className="text-xs font-bold animate-pulse mt-0.5" style={{ color: '#93c5fd' }}>YOUR TURN</span>
+        {!player.isAllIn && !player.isFolded && isHumanActive && (
+          <span
+            className="animate-pulse"
+            style={{ marginTop: '2px', fontSize: '10px', fontWeight: 700, color: '#93c5fd', display: 'block', textAlign: 'center' }}
+          >
+            YOUR TURN
+          </span>
         )}
       </div>
     </div>

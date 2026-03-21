@@ -77,21 +77,26 @@ export function App() {
   // Game table
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a2035 0%, #0d1117 70%)' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: '#0d1117',
+      }}
     >
       <TopBar
         onToggleSidePanel={() => setSidePanelOpen((v) => !v)}
         sidePanelOpen={sidePanelOpen}
       />
-      <div className="flex flex-1 min-h-0">
-        <main className="flex flex-col flex-1 min-w-0">
-          {/* Table — centered, takes all remaining vertical space */}
-          <div className="flex-1 min-h-0">
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <main style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+          {/* Table — takes all remaining vertical space */}
+          <div style={{ flex: 1, minHeight: 0 }}>
             <TableArea />
           </div>
           {/* Action panel — fixed height so table position is stable */}
-          <div className="flex-shrink-0 h-[130px]">
+          <div style={{ height: '120px', flexShrink: 0 }}>
             <ActionPanel />
           </div>
         </main>
