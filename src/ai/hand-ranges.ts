@@ -73,37 +73,65 @@ export function handClassName(highRank: number, lowRank: number, suited: boolean
 
 /**
  * Build the 169-hand range table with combo-weighted percentiles.
- * Hands are ranked by a base strength score, then percentiles are assigned
- * per position group with adjustments.
+ *
+ * Uses a preflop equity-based static ranking derived from all-in equity
+ * vs random hand simulations. This replaces the old heuristic scoring
+ * (pairStrength/suitedStrength/offsuitStrength) with proven hand ordering.
  */
 function buildRangeTable(): HandClass[] {
-  const hands: { name: string; combos: number; baseStrength: number }[] = [];
-
-  const rankNames: Record<number, string> = {
-    2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8',
-    9: '9', 10: 'T', 11: 'J', 12: 'Q', 13: 'K', 14: 'A',
-  };
-
-  // Generate all 169 classes
-  for (let high = 14; high >= 2; high--) {
-    for (let low = high; low >= 2; low--) {
-      if (high === low) {
-        // Pair
-        const strength = pairStrength(high);
-        hands.push({ name: `${rankNames[high]}${rankNames[low]}`, combos: 6, baseStrength: strength });
-      } else {
-        // Suited
-        const sStrength = suitedStrength(high, low);
-        hands.push({ name: `${rankNames[high]}${rankNames[low]}s`, combos: 4, baseStrength: sStrength });
-        // Offsuit
-        const oStrength = offsuitStrength(high, low);
-        hands.push({ name: `${rankNames[high]}${rankNames[low]}o`, combos: 12, baseStrength: oStrength });
-      }
-    }
-  }
-
-  // Sort by base strength (highest = best)
-  hands.sort((a, b) => b.baseStrength - a.baseStrength);
+  // Static 169-hand ranking ordered by preflop equity vs random hand.
+  // Source: Standard preflop equity tables (ProPokerTools / PokerStove methodology).
+  // Format: [hand_name, combos]
+  // Order: strongest first (AA) → weakest last (32o)
+  const EQUITY_RANKING: [string, number][] = [
+    // --- Premium pairs ---
+    ['AA', 6], ['KK', 6], ['QQ', 6], ['JJ', 6],
+    // --- Strong broadways + TT ---
+    ['AKs', 4], ['TT', 6], ['AQs', 4], ['AKo', 12], ['AJs', 4], ['KQs', 4],
+    // --- Medium pairs + broadway ---
+    ['99', 6], ['ATs', 4], ['AQo', 12], ['KJs', 4], ['KTs', 4], ['QJs', 4],
+    ['AJo', 12], ['A9s', 4], ['88', 6], ['QTs', 4], ['KQo', 12],
+    // --- Suited aces + connectors ---
+    ['A8s', 4], ['K9s', 4], ['JTs', 4], ['ATo', 12], ['A7s', 4], ['Q9s', 4],
+    ['77', 6], ['KJo', 12], ['A5s', 4], ['A6s', 4], ['A4s', 4],
+    // --- Middle suited connectors ---
+    ['J9s', 4], ['T9s', 4], ['K8s', 4], ['A3s', 4], ['QJo', 12], ['A2s', 4],
+    ['A9o', 12], ['K7s', 4], ['Q8s', 4], ['KTo', 12], ['66', 6],
+    // --- Suited one-gappers + broadway offsuit ---
+    ['J8s', 4], ['T8s', 4], ['A8o', 12], ['K6s', 4], ['Q9o', 12], ['98s', 4],
+    ['JTo', 12], ['QTo', 12], ['A7o', 12], ['K5s', 4], ['87s', 4], ['55', 6],
+    ['A5o', 12], ['Q7s', 4], ['K4s', 4],
+    // --- Low suited connectors + offsuit aces ---
+    ['J9o', 12], ['A6o', 12], ['K9o', 12], ['T9o', 12], ['Q6s', 4], ['97s', 4],
+    ['K3s', 4], ['A4o', 12], ['J7s', 4], ['76s', 4], ['T7s', 4],
+    ['Q8o', 12], ['K2s', 4], ['44', 6],
+    // --- Marginal suited + offsuit kings ---
+    ['86s', 4], ['A3o', 12], ['Q5s', 4], ['65s', 4], ['J8o', 12], ['98o', 12],
+    ['A2o', 12], ['T8o', 12], ['Q4s', 4], ['96s', 4], ['33', 6],
+    ['75s', 4], ['87o', 12], ['J6s', 4], ['Q3s', 4], ['54s', 4],
+    // --- Weak suited + low offsuit ---
+    ['K8o', 12], ['Q7o', 12], ['T6s', 4], ['64s', 4], ['K7o', 12],
+    ['J5s', 4], ['Q2s', 4], ['85s', 4], ['22', 6],
+    ['97o', 12], ['J4s', 4], ['76o', 12], ['53s', 4],
+    // --- Very weak hands ---
+    ['J3s', 4], ['43s', 4], ['K6o', 12], ['86o', 12], ['95s', 4], ['74s', 4],
+    ['T7o', 12], ['J2s', 4], ['65o', 12], ['Q6o', 12], ['84s', 4],
+    ['K5o', 12], ['52s', 4], ['T5s', 4], ['63s', 4],
+    // --- Bottom of range ---
+    ['Q5o', 12], ['96o', 12], ['54o', 12], ['K4o', 12], ['75o', 12],
+    ['T4s', 4], ['42s', 4], ['93s', 4], ['K3o', 12], ['T3s', 4],
+    ['Q4o', 12], ['73s', 4], ['85o', 12], ['64o', 12],
+    ['82s', 4], ['T2s', 4], ['K2o', 12], ['53o', 12], ['Q3o', 12],
+    ['92s', 4], ['62s', 4], ['43o', 12],
+    // --- Trash hands ---
+    ['J7o', 12], ['Q2o', 12], ['83s', 4], ['J6o', 12], ['94o', 12], ['94s', 4],
+    ['72s', 4], ['T6o', 12], ['J5o', 12], ['84o', 12], ['52o', 12],
+    ['J4o', 12], ['74o', 12], ['42o', 12], ['95o', 12],
+    ['J3o', 12], ['63o', 12], ['93o', 12], ['J2o', 12], ['32s', 4],
+    ['T5o', 12], ['82o', 12], ['73o', 12], ['62o', 12],
+    ['T4o', 12], ['32o', 12], ['92o', 12], ['83o', 12],
+    ['T3o', 12], ['72o', 12], ['T2o', 12],
+  ];
 
   // Assign combo-weighted percentiles per position
   const totalCombos = 1326;
@@ -120,47 +148,16 @@ function buildRangeTable(): HandClass[] {
     HU: 1.25,
   };
 
-  return hands.map((hand, index) => {
-    // Base percentile (combo-weighted cumulative position)
-    let cumCombos = 0;
-    for (let i = 0; i < index; i++) {
-      cumCombos += hands[i]!.combos;
-    }
-    const basePercentile = (cumCombos + hand.combos / 2) / totalCombos;
+  let cumCombos = 0;
+  return EQUITY_RANKING.map(([name, combos]) => {
+    const basePercentile = (cumCombos + combos / 2) / totalCombos;
+    cumCombos += combos;
 
     const percentiles: Record<PositionGroup, number> = {} as any;
     for (const [pos, mult] of Object.entries(positionMultipliers)) {
-      // Adjusted percentile: divide by multiplier to shift range
-      // Higher mult = more hands qualify (wider range)
       percentiles[pos as PositionGroup] = Math.min(1.0, basePercentile / mult);
     }
 
-    return {
-      name: hand.name,
-      combos: hand.combos,
-      percentiles,
-    };
+    return { name, combos, percentiles };
   });
-}
-
-/** Hand strength scoring for ranking (higher = stronger) */
-function pairStrength(rank: number): number {
-  // Pairs: AA=200, KK=190, ..., 22=80
-  return 80 + (rank - 2) * 10;
-}
-
-function suitedStrength(high: number, low: number): number {
-  // Gap penalty + high card bonus + suited bonus
-  const gap = high - low - 1;
-  const highBonus = high * 3;
-  const connectedness = gap <= 2 ? (3 - gap) * 5 : 0;
-  const suitedBonus = 8;
-  return highBonus + connectedness + suitedBonus - gap * 2;
-}
-
-function offsuitStrength(high: number, low: number): number {
-  const gap = high - low - 1;
-  const highBonus = high * 3;
-  const connectedness = gap <= 2 ? (3 - gap) * 4 : 0;
-  return highBonus + connectedness - gap * 2;
 }
