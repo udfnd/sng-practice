@@ -116,6 +116,8 @@ export interface PlayerStats {
   handsEligible: number;
   vpipCount: number;
   pfrCount: number;
+  /** Preflop open limp or limp-behind count (CALL without facing a raise) */
+  limpCount: number;
   /** Times facing first raise preflop */
   threeBetOpportunities: number;
   threeBetCount: number;

@@ -23,10 +23,11 @@ describe('checkCalibration', () => {
   it('should pass when stats are within tolerance', () => {
     const stats: PlayerStats = {
       handsEligible: 10000,
-      vpipCount: 1900, // 19% = target
-      pfrCount: 1600,  // 16% = target
+      vpipCount: 1900,
+      pfrCount: 1600,
+      limpCount: 0,
       threeBetOpportunities: 2000,
-      threeBetCount: 140, // 7% = target
+      threeBetCount: 140,
       cBetOpportunities: 0,
       cBetCount: 0,
       wentToShowdown: 0,
@@ -41,8 +42,9 @@ describe('checkCalibration', () => {
   it('should fail when VPIP is out of range', () => {
     const stats: PlayerStats = {
       handsEligible: 10000,
-      vpipCount: 2500, // 25% — outside 19% ±2%
+      vpipCount: 2500,
       pfrCount: 1600,
+      limpCount: 0,
       threeBetOpportunities: 2000,
       threeBetCount: 140,
       cBetOpportunities: 0,
@@ -61,6 +63,7 @@ describe('checkCalibration', () => {
       handsEligible: 0,
       vpipCount: 0,
       pfrCount: 0,
+      limpCount: 0,
       threeBetOpportunities: 0,
       threeBetCount: 0,
       cBetOpportunities: 0,

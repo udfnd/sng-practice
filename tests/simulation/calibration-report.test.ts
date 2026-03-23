@@ -32,6 +32,7 @@ function makeSimulationResult(overrides?: Partial<SimulationResult>): Simulation
         vpipCount: 220,
         pfrCount: 180,
         threeBetCount: 17,
+        limpCount: 0,
       },
       TAG: {
         vpip: 0.20,
@@ -49,6 +50,7 @@ function makeSimulationResult(overrides?: Partial<SimulationResult>): Simulation
         vpipCount: 200,
         pfrCount: 170,
         threeBetCount: 12,
+        limpCount: 0,
       },
       Nit: {
         vpip: 0.10,
@@ -66,6 +68,7 @@ function makeSimulationResult(overrides?: Partial<SimulationResult>): Simulation
         vpipCount: 90,
         pfrCount: 63,
         threeBetCount: 4,
+        limpCount: 0,
       },
     },
     timingMs: {
@@ -202,6 +205,7 @@ describe('preset calibration entries', () => {
           vpipCount: 100,
           pfrCount: 50,
           threeBetCount: 2,
+          limpCount: 0,
         },
       },
     });

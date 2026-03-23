@@ -39,6 +39,7 @@ function emptyStats(): PlayerStats {
     handsEligible: 0,
     vpipCount: 0,
     pfrCount: 0,
+    limpCount: 0,
     threeBetOpportunities: 0,
     threeBetCount: 0,
     cBetOpportunities: 0,

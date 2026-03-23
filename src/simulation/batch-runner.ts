@@ -18,6 +18,8 @@ export interface SimulationConfig {
   masterSeed: string;
   /** optional max hands per SNG */
   handsLimit?: number;
+  /** When true, AI players never limp (raise-or-fold only) */
+  noLimp?: boolean;
 }
 
 export interface PresetStats {
@@ -38,6 +40,8 @@ export interface PresetStats {
   vpipCount: number;
   pfrCount: number;
   threeBetCount: number;
+  /** Preflop limp count (open limp + limp-behind) */
+  limpCount: number;
 }
 
 export interface SimulationResult {
@@ -60,6 +64,7 @@ interface PresetAccumulator {
   vpipCount: number;
   pfrCount: number;
   threeBetCount: number;
+  limpCount: number;
   handsEligible: number;
   threeBetOpportunities: number;
   results: number[];
@@ -90,6 +95,7 @@ export async function runBatchSimulation(config: SimulationConfig): Promise<Simu
         vpipCount: 0,
         pfrCount: 0,
         threeBetCount: 0,
+        limpCount: 0,
         handsEligible: 0,
         threeBetOpportunities: 0,
         results: [],
@@ -113,6 +119,7 @@ export async function runBatchSimulation(config: SimulationConfig): Promise<Simu
         (conserved) => {
           if (!conserved) chipConservationPassed = false;
         },
+        config.noLimp,
       );
       totalHands += handsThisSng;
       sngsCompleted++;
@@ -162,6 +169,7 @@ export async function runBatchSimulation(config: SimulationConfig): Promise<Simu
       vpipCount: acc.vpipCount,
       pfrCount: acc.pfrCount,
       threeBetCount: acc.threeBetCount,
+      limpCount: acc.limpCount,
     };
   }
 
@@ -188,6 +196,7 @@ async function runSingleSNG(
   presetAssignments: Record<number, string>,
   accumulators: Record<string, PresetAccumulator>,
   onChipConservation: (passed: boolean) => void,
+  noLimp?: boolean,
 ): Promise<number> {
   // Build player names
   const playerNames: string[] = [];
@@ -201,6 +210,7 @@ async function runSingleSNG(
     startingChips: 1500,
     handsPerLevel: 10,
     initialSeed: sngSeed,
+    noLimp,
   });
 
   const tournament = createTournament(config, playerNames);
@@ -239,7 +249,7 @@ async function runSingleSNG(
 
     // Use shared PRNG (deterministic per seed)
     const rng = () => nextFloat(prngState);
-    const result = selectAIAction(player, tournament.gameState, null, rng);
+    const result = selectAIAction(player, tournament.gameState, null, rng, { noLimp: config.noLimp });
     return { type: result.type, amount: result.amount };
   };
 
@@ -276,6 +286,7 @@ async function runSingleSNG(
     acc.vpipCount += player.stats.vpipCount;
     acc.pfrCount += player.stats.pfrCount;
     acc.threeBetCount += player.stats.threeBetCount;
+    acc.limpCount += player.stats.limpCount;
     acc.handsEligible += player.stats.handsEligible;
     acc.threeBetOpportunities += player.stats.threeBetOpportunities;
   }

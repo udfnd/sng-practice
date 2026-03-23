@@ -21,6 +21,7 @@ export function createStats(): PlayerStats {
     handsEligible: 0,
     vpipCount: 0,
     pfrCount: 0,
+    limpCount: 0,
     threeBetOpportunities: 0,
     threeBetCount: 0,
     cBetOpportunities: 0,
@@ -53,6 +54,10 @@ export function trackAction(stats: PlayerStats, params: TrackActionParams): void
   if (street === 'PREFLOP' && !isBlind) {
     if (actionType === 'CALL' || actionType === 'RAISE' || (actionType === 'BET' && isRaise)) {
       stats.vpipCount++;
+    }
+    // Limp: preflop CALL without facing a raise (open limp or limp-behind)
+    if (actionType === 'CALL' && !isFacingFirstRaise) {
+      stats.limpCount++;
     }
   }
 
