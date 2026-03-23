@@ -32,6 +32,25 @@ export interface PostflopContext {
   opponents?: number;
   /** True when this is a blind vs blind (SB vs BB) heads-up pot. Defaults to false. */
   isBvB?: boolean;
+
+  // --- Phase 2: Node-identifying fields (optional, for Phase 3 policy lookup) ---
+
+  /** True if player acts after all opponents on this street (last to act) */
+  inPosition?: boolean;
+  /** How the pot was built preflop: limped, single raised, 3-bet, or 4-bet+ */
+  potType?: 'LIMP' | 'SRP' | '3BP' | '4BP';
+  /** Position matchup, e.g. 'BTNvBB', 'COvBB', 'SBvBB', 'unknown' */
+  matchup?: string;
+  /** Action line describing prior street action: 'first', 'afterBetCall', 'afterXX', etc. */
+  actionLine?: string;
+  /** Facing bet as percentage of pot (0-200+). Enables pot odds calculation. */
+  betPctPot?: number;
+  /** Effective stack in big blinds */
+  effectiveStackBB?: number;
+  /** Players remaining in tournament (for ICM stage detection) */
+  playersRemaining?: number;
+  /** Board cluster string for strategy lookup */
+  boardCluster?: string;
 }
 
 /**
@@ -56,8 +75,8 @@ function boardDependentCheckRaiseFreq(
     case 'paired':   freq *= 0.8;  break;
   }
 
-  // Boost for combo draws (made tier 1-2 AND draw tier 1-2)
-  if (madeTier <= 2 && drawTier <= 2 && drawTier > 0) {
+  // Boost for strong draws (flush draw+ with decent made hand)
+  if (madeTier <= 2 && drawTier >= 3) {
     freq *= 1.4;
   }
 
@@ -200,9 +219,11 @@ function facingBetDecision(
     case 4: foldFreq *= 1.2; break;   // More likely to fold
   }
 
-  // Draws reduce fold frequency
-  if (drawTier >= 2) foldFreq *= 0.5;
-  if (drawTier >= 3) foldFreq *= 0.8;
+  // Draws reduce fold frequency (higher drawTier = stronger draw)
+  if (drawTier >= 1) foldFreq *= 0.85;  // Gutshot: small reduction
+  if (drawTier >= 2) foldFreq *= 0.6;   // OESD+: significant reduction
+  if (drawTier >= 3) foldFreq *= 0.7;   // Flush draw+: additional reduction
+  if (drawTier >= 4) foldFreq *= 0.5;   // Combo/nut draw: rarely fold
 
   // Milestone 5: BvB -15% fold frequencies
   if (isBvB) {

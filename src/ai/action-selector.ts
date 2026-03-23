@@ -1,4 +1,4 @@
-import type { GameState, Player } from '@/types';
+import type { GameState, Player, Action } from '@/types';
 import { makePreflopDecision, type PreflopContext } from './preflop';
 import { makePostflopDecision, type PostflopContext } from './postflop';
 import { getPositionGroup } from './position';
@@ -6,6 +6,7 @@ import { resolveAction, type BettingPlayer, type ActionResult } from '@/engine/b
 import type { BettingRoundState } from '@/types';
 import { PAYOUT_RATIOS } from '@/engine/tournament';
 import { calculateSPR } from './spr';
+import { getBoardCluster } from './board-cluster';
 
 /**
  * Top-level AI action selector.
@@ -213,6 +214,38 @@ export function buildPostflopContext(
         (p.seatIndex === state.sbSeatIndex || p.seatIndex === state.bbSeatIndex),
     );
 
+  // --- Phase 2: Node-identifying fields ---
+
+  // In Position: player acts last (highest seat order among active non-folded)
+  const inPosition = detectInPosition(player, activePlayers, state.buttonSeatIndex);
+
+  // Pot type from preflop action history
+  const potType = detectPotType(state.actionHistory);
+
+  // Position matchup (e.g. 'BTNvBB')
+  const matchup = detectMatchup(
+    player, preflopAggressor, activePlayers, state,
+  );
+
+  // Action line (what happened on previous street)
+  const actionLine = detectActionLine(state.actionHistory, street, preflopAggressor, player.id);
+
+  // Bet as percentage of pot
+  const betPctPot = facingBet && potSize > 0
+    ? Math.round((facingAmount / (potSize - facingAmount)) * 100) // bet / pot-before-bet
+    : 0;
+
+  // Effective stack in BB
+  const effectiveStackBB = Math.round(effectiveStack / bb * 10) / 10;
+
+  // Players remaining in tournament
+  const playersRemaining = state.players.filter((p) => p.isActive).length;
+
+  // Board cluster
+  const boardCluster = state.communityCards.length >= 3
+    ? getBoardCluster(state.communityCards)
+    : undefined;
+
   return {
     profile: player.aiProfile!,
     holeCards: holeCards as [typeof holeCards[0], typeof holeCards[1]],
@@ -227,7 +260,122 @@ export function buildPostflopContext(
     spr,
     opponents,
     isBvB,
+    inPosition,
+    potType,
+    matchup,
+    actionLine,
+    betPctPot,
+    effectiveStackBB,
+    playersRemaining,
+    boardCluster,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Helper functions for node identification
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect if player is in position (acts last) relative to opponents.
+ * Uses seat order relative to button.
+ */
+function detectInPosition(
+  player: Player,
+  activePlayers: Player[],
+  buttonSeatIndex: number,
+): boolean {
+  if (activePlayers.length <= 1) return true;
+
+  // Calculate position order relative to button (higher = later = IP)
+  const seatOrder = (seatIndex: number) => {
+    const offset = seatIndex - buttonSeatIndex;
+    return offset >= 0 ? offset : offset + 10; // Wrap around (max 10 seats)
+  };
+
+  const playerOrder = seatOrder(player.seatIndex);
+  const opponents = activePlayers.filter((p) => p.id !== player.id);
+  const maxOpponentOrder = Math.max(...opponents.map((p) => seatOrder(p.seatIndex)));
+
+  return playerOrder > maxOpponentOrder;
+}
+
+/**
+ * Detect pot type from preflop action history.
+ */
+function detectPotType(actionHistory: Action[]): 'LIMP' | 'SRP' | '3BP' | '4BP' {
+  const preflopActions = actionHistory.filter((a) => a.street === 'PREFLOP');
+  let raiseCount = 0;
+  let hasLimp = false;
+
+  for (const action of preflopActions) {
+    if (action.type === 'RAISE' || action.type === 'BET') {
+      raiseCount++;
+    } else if (action.type === 'CALL' && raiseCount === 0) {
+      hasLimp = true;
+    }
+  }
+
+  if (raiseCount >= 3) return '4BP';
+  if (raiseCount >= 2) return '3BP';
+  if (raiseCount >= 1) return 'SRP';
+  return 'LIMP';
+}
+
+/**
+ * Detect position matchup string (e.g. 'BTNvBB', 'COvBB').
+ */
+function detectMatchup(
+  player: Player,
+  preflopAggressor: string | null,
+  activePlayers: Player[],
+  state: GameState,
+): string {
+  if (activePlayers.length !== 2) return 'multiway';
+
+  const opponent = activePlayers.find((p) => p.id !== player.id);
+  if (!opponent) return 'unknown';
+
+  const activeSeats = activePlayers.map((p) => p.seatIndex);
+  const playerPos = getPositionGroup(activeSeats, player.seatIndex, state.buttonSeatIndex);
+  const opponentPos = getPositionGroup(activeSeats, opponent.seatIndex, state.buttonSeatIndex);
+
+  // Convention: raiser position vs caller position
+  if (player.id === preflopAggressor) {
+    return `${playerPos}v${opponentPos}`;
+  }
+  return `${opponentPos}v${playerPos}`;
+}
+
+/**
+ * Detect action line from previous street's action history.
+ */
+function detectActionLine(
+  actionHistory: Action[],
+  currentStreet: 'FLOP' | 'TURN' | 'RIVER',
+  preflopAggressor: string | null,
+  playerId: string,
+): string {
+  // Map current street to previous street
+  const prevStreet = currentStreet === 'FLOP' ? 'PREFLOP'
+    : currentStreet === 'TURN' ? 'FLOP'
+    : 'TURN';
+
+  const prevActions = actionHistory.filter((a) => a.street === prevStreet);
+
+  if (prevActions.length === 0) return 'first';
+
+  // Check if previous street had bet+call, check+check, etc.
+  const hasBet = prevActions.some((a) => a.type === 'BET');
+  const hasRaise = prevActions.some((a) => a.type === 'RAISE');
+  const hasCall = prevActions.some((a) => a.type === 'CALL');
+  const allChecks = prevActions.every((a) => a.type === 'CHECK' || a.type === 'FOLD');
+
+  if (allChecks) return 'afterXX';
+  if (hasRaise && hasCall) return 'afterXRCall';
+  if (hasBet && hasCall) return 'afterBetCall';
+  if (hasBet) return 'afterBetCall'; // Bet without call means heads-up fold (shouldn't reach here usually)
+
+  return 'first';
 }
 
 /**

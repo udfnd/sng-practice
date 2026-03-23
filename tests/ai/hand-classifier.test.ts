@@ -71,23 +71,44 @@ describe('classifyHand — Made Tiers', () => {
   });
 });
 
-describe('classifyHand — Draw Tiers', () => {
-  it('Tier 2: flush draw', () => {
+describe('classifyHand — Draw Tiers (higher = stronger)', () => {
+  it('Tier 4: nut flush draw (Ah with 4 hearts)', () => {
     const result = classifyHand(
       [card('Ah'), card('9h')],
       [card('Kh'), card('7h'), card('2d')],
     );
-    expect(result.drawTier).toBe(2);
+    expect(result.drawTier).toBe(4);
+    expect(result.isNutDraw).toBe(true);
+    expect(result.drawDescription).toContain('flush');
+  });
+
+  it('Tier 3: non-nut flush draw', () => {
+    const result = classifyHand(
+      [card('9h'), card('6h')],
+      [card('Kh'), card('7h'), card('2d')],
+    );
+    expect(result.drawTier).toBe(3);
+    expect(result.isNutDraw).toBe(false);
     expect(result.drawDescription).toContain('Flush');
   });
 
-  it('Tier 3: open-ended straight draw', () => {
+  it('Tier 2: open-ended straight draw', () => {
     const result = classifyHand(
       [card('8h'), card('7d')],
       [card('6s'), card('5c'), card('Kd')],
     );
-    expect(result.drawTier).toBe(3);
+    expect(result.drawTier).toBe(2);
     expect(result.drawDescription).toContain('straight');
+  });
+
+  it('Tier 1: gutshot', () => {
+    // Jh-Th on 8s-7c-2d: window 7-11 has 7,8,T(10),J(11) = 4 of 5, missing 9 (interior) = gutshot
+    const result = classifyHand(
+      [card('Jh'), card('Th')],
+      [card('8s'), card('7c'), card('2d')],
+    );
+    expect(result.drawTier).toBe(1);
+    expect(result.drawDescription).toContain('Gutshot');
   });
 
   it('Tier 0: no draw', () => {
@@ -96,5 +117,99 @@ describe('classifyHand — Draw Tiers', () => {
       [card('Ks'), card('9c'), card('6h')],
     );
     expect(result.drawTier).toBe(0);
+  });
+});
+
+describe('classifyHand — Made Hands (evaluator integration)', () => {
+  it('detects set correctly (tier 1)', () => {
+    const result = classifyHand(
+      [card('7h'), card('7d')],
+      [card('7s'), card('Kc'), card('2d')],
+    );
+    expect(result.madeTier).toBe(1);
+    expect(result.madeDescription).toBe('Set');
+    expect(result.handCategory).toBe(3); // THREE_OF_A_KIND
+  });
+
+  it('detects two pair correctly (tier 1 for top two pair)', () => {
+    const result = classifyHand(
+      [card('Ah'), card('Kd')],
+      [card('As'), card('Kc'), card('2d')],
+    );
+    expect(result.madeTier).toBe(1);
+    expect(result.madeDescription).toBe('Top two pair');
+    expect(result.handCategory).toBe(2); // TWO_PAIR
+  });
+
+  it('detects flush correctly (tier 1)', () => {
+    const result = classifyHand(
+      [card('Ah'), card('9h')],
+      [card('Kh'), card('7h'), card('2h')],
+    );
+    expect(result.madeTier).toBe(1);
+    expect(result.madeDescription).toContain('Flush');
+    expect(result.handCategory).toBe(5); // FLUSH
+  });
+
+  it('detects straight correctly (tier 1)', () => {
+    const result = classifyHand(
+      [card('9h'), card('8d')],
+      [card('7s'), card('6c'), card('5d')],
+    );
+    expect(result.madeTier).toBe(1);
+    expect(result.madeDescription).toBe('Straight');
+    expect(result.handCategory).toBe(4); // STRAIGHT
+  });
+
+  it('detects full house correctly (tier 1)', () => {
+    const result = classifyHand(
+      [card('Ah'), card('Ad')],
+      [card('As'), card('Kc'), card('Kd')],
+    );
+    expect(result.madeTier).toBe(1);
+    expect(result.madeDescription).toBe('Full house');
+    expect(result.handCategory).toBe(6); // FULL_HOUSE
+  });
+
+  it('nutStrength is high for strong hands', () => {
+    const result = classifyHand(
+      [card('Ah'), card('Ad')],
+      [card('As'), card('Kc'), card('2d')],
+    );
+    expect(result.nutStrength).toBeGreaterThan(0.6);
+  });
+
+  it('nutStrength is low for air', () => {
+    const result = classifyHand(
+      [card('4h'), card('3d')],
+      [card('As'), card('Kc'), card('Qd')],
+    );
+    expect(result.nutStrength).toBeLessThan(0.15);
+  });
+});
+
+describe('classifyHand — Backdoor Draws', () => {
+  it('detects backdoor flush draw on flop', () => {
+    const result = classifyHand(
+      [card('Ah'), card('9d')],
+      [card('Kh'), card('7c'), card('2h')],
+    );
+    expect(result.backdoorFlush).toBe(true);
+  });
+
+  it('no backdoor flush on turn', () => {
+    const result = classifyHand(
+      [card('Ah'), card('9d')],
+      [card('Kh'), card('7c'), card('2h'), card('5d')],
+    );
+    expect(result.backdoorFlush).toBe(false);
+  });
+
+  it('detects backdoor straight draw on flop', () => {
+    const result = classifyHand(
+      [card('Th'), card('9d')],
+      [card('7s'), card('3c'), card('2d')],
+    );
+    expect(result.backdoorStraight).toBe(true);
   });
 });

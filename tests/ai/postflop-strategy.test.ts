@@ -723,7 +723,7 @@ describe('Donk Betting', () => {
       communityCards: callerBoard,
       isAggressor: false,
       facingBet: false,
-      holeCards: [makeCard(6, 'clubs'), makeCard(5, 'hearts')], // OESD
+      holeCards: [makeCard(11, 'clubs'), makeCard(4, 'hearts')], // gutshot (J needs T), no completed straight
       potSize,
     });
 

@@ -201,11 +201,11 @@ describe('M3: River polarization - tier 1 or bluff bets big, tier 2-3 checks', (
   });
 
   it('tier 3 hand checks more on river than flop', () => {
-    // Weak hand (5-4 on A-K-Q board = no pair) river vs flop
-    const weakHole: [Card, Card] = [makeCard(5, 'clubs'), makeCard(4, 'diamonds')];
+    // Weak hand (4c-3d on disconnected boards = no pair, no straight)
+    const weakHole: [Card, Card] = [makeCard(4, 'clubs'), makeCard(3, 'diamonds')];
     const riverCtx = makeBaseCtx({
       holeCards: weakHole,
-      communityCards: [makeCard(14, 'spades'), makeCard(13, 'hearts'), makeCard(12, 'clubs'), makeCard(2, 'diamonds'), makeCard(3, 'spades')],
+      communityCards: [makeCard(14, 'spades'), makeCard(13, 'hearts'), makeCard(12, 'clubs'), makeCard(8, 'diamonds'), makeCard(11, 'spades')],
       street: 'RIVER',
       isAggressor: true,
     });
@@ -316,7 +316,7 @@ describe('M4: donk betting in passiveDecision', () => {
       communityCards: callerFavoringBoard,
       isAggressor: false,
       facingBet: false,
-      holeCards: [makeCard(6, 'clubs'), makeCard(5, 'hearts')], // strong OESD
+      holeCards: [makeCard(11, 'clubs'), makeCard(4, 'hearts')], // gutshot draw (J needs T for straight)
       potSize: 200,
     });
 
