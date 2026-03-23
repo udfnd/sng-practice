@@ -94,12 +94,14 @@ export const PRESETS: Record<PresetType, AIProfile> = {
  *             different dilution dynamics than VPIP)
  */
 export const RING_GAME_SCALE: Record<string, { vpip: number; pfr: number; threeBet: number }> = {
-  Nit:     { vpip: 3.43, pfr: 3.66, threeBet: 3.02 },
-  TAG:     { vpip: 2.47, pfr: 3.65, threeBet: 2.39 },
-  LAG:     { vpip: 1.99, pfr: 2.87, threeBet: 1.97 },
-  Station: { vpip: 2.89, pfr: 0.67, threeBet: 0.91 },
-  Maniac:  { vpip: 1.73, pfr: 2.04, threeBet: 1.62 },
-  Shark:   { vpip: 2.94, pfr: 3.74, threeBet: 2.92 },
+  // Recalibrated for equity-based hand ranking (Phase 4).
+  // Averaged from 2 calibration iterations (20 SNGs each).
+  Nit:     { vpip: 1.07, pfr: 0.68, threeBet: 2.38 },
+  TAG:     { vpip: 1.46, pfr: 2.01, threeBet: 2.80 },
+  LAG:     { vpip: 1.95, pfr: 2.41, threeBet: 3.59 },
+  Station: { vpip: 2.12, pfr: 1.32, threeBet: 2.93 },
+  Maniac:  { vpip: 1.92, pfr: 2.61, threeBet: 4.01 },
+  Shark:   { vpip: 2.24, pfr: 3.29, threeBet: 3.24 },
 };
 
 /**
