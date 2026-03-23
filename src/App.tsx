@@ -31,6 +31,7 @@ export function App() {
       payoutRatios,
       blindSchedule: DEFAULT_BLIND_SCHEDULE,
       initialSeed: setupConfig.customSeed || null,
+      noLimp: setupConfig.noLimp,
     });
 
     // Build aiProfiles map: p1..p7 -> preset type string

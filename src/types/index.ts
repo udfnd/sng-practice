@@ -178,6 +178,8 @@ export interface TournamentConfig {
   payoutStructure: 'top2' | 'top3';
   payoutRatios: number[];
   initialSeed: string | null;
+  /** When true, AI players never limp — they always raise or fold preflop. */
+  noLimp?: boolean;
 }
 
 export interface TournamentState {

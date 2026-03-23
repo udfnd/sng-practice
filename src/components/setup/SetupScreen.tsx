@@ -12,6 +12,8 @@ export interface SetupConfig {
   payoutStructure: 'top2' | 'top3';
   aiPresets: PresetType[];
   customSeed: string;
+  /** When true, AI players never limp — always raise or fold preflop. */
+  noLimp: boolean;
 }
 
 const DEFAULT_PRESETS: PresetType[] = ['TAG', 'LAG', 'Nit', 'Station', 'Shark', 'Maniac', 'TAG'];
@@ -23,9 +25,10 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
   const [payoutStructure, setPayoutStructure] = useState<'top2' | 'top3'>('top3');
   const [aiPresets, setAiPresets] = useState<PresetType[]>(DEFAULT_PRESETS);
   const [customSeed, setCustomSeed] = useState('');
+  const [noLimp, setNoLimp] = useState(false);
 
   const handleStart = () => {
-    onStart({ startingChips, blindSpeed, payoutStructure, aiPresets, customSeed });
+    onStart({ startingChips, blindSpeed, payoutStructure, aiPresets, customSeed, noLimp });
   };
 
   return (
@@ -115,6 +118,26 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
             placeholder="Leave empty for random"
             className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm"
           />
+        </div>
+
+        {/* No Limp Mode */}
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-xs text-gray-400 block">Raise or Fold Only</label>
+            <span className="text-[10px] text-gray-500">AI never limps — always raise or fold preflop</span>
+          </div>
+          <button
+            onClick={() => setNoLimp(!noLimp)}
+            className={`w-12 h-6 rounded-full transition-colors relative ${
+              noLimp ? 'bg-blue-600' : 'bg-gray-600'
+            }`}
+          >
+            <span
+              className={`block w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${
+                noLimp ? 'translate-x-6' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
         </div>
 
         {/* Start Button */}

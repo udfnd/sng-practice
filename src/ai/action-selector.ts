@@ -17,6 +17,7 @@ export function selectAIAction(
   state: GameState,
   preflopAggressor: string | null,
   rng: () => number = Math.random,
+  options?: { noLimp?: boolean },
 ): ActionResult {
   const street = state.bettingRound.street;
 
@@ -30,6 +31,7 @@ export function selectAIAction(
 
   if (street === 'PREFLOP') {
     const ctx = buildPreflopContext(player, state, rng);
+    if (options?.noLimp) ctx.noLimp = true;
     const decision = makePreflopDecision(ctx, rng);
     return translateDecision(decision, bettingPlayer, state.bettingRound);
   } else {

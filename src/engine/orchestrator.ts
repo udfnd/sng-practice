@@ -374,7 +374,8 @@ async function runBettingRound(
       }
 
       const rng = () => nextFloat(handPrng);
-      actionResult = selectAIAction(player, gameState, preflopAggressor, rng);
+      const noLimp = tournament.config.noLimp ?? false;
+      actionResult = selectAIAction(player, gameState, preflopAggressor, rng, { noLimp });
     } else {
       // Human player: delegate to ActionProvider
       const response = await getAction(currentPlayerId, validActions, bettingPlayer);

@@ -65,6 +65,8 @@ export interface PreflopContext {
   playerStackIndex?: number;
   /** Whether antes are present in the current blind level (optional, default false) */
   hasAnte?: boolean;
+  /** When true, never limp — always raise or fold. */
+  noLimp?: boolean;
 }
 
 /**
@@ -134,10 +136,12 @@ export function makePreflopDecision(ctx: PreflopContext, rng: () => number = Mat
  */
 function situationA(percentile: number, ctx: PreflopContext, rng: () => number, vpipCompensation: number, pfrCompensation: number): PreflopDecision {
   const { profile, bb, chips, currentBet, isBB } = ctx;
+  const noLimp = ctx.noLimp ?? false;
 
-  const effectivePfr = clamp01(profile.pfr * pfrCompensation);
-  // Limp range = pfr cutoff + additional limp-only hands; the limp spread is scaled by vpipCompensation.
-  const effectiveLimp = clamp01(effectivePfr + profile.openLimpFreq * vpipCompensation);
+  // When noLimp is enabled, use VPIP as the raise cutoff (raise-or-fold strategy)
+  const effectivePfr = noLimp
+    ? clamp01(profile.vpip * vpipCompensation)
+    : clamp01(profile.pfr * pfrCompensation);
 
   if (percentile <= effectivePfr) {
     // Open raise
@@ -151,10 +155,14 @@ function situationA(percentile: number, ctx: PreflopContext, rng: () => number, 
     };
   }
 
-  if (percentile <= effectiveLimp) {
-    // Open limp
-    const callAmount = Math.min(bb - currentBet, chips);
-    return { action: 'CALL', amount: callAmount, situation: 'UNOPENED' };
+  // No limp path when noLimp is enabled — skip directly to fold/check
+  if (!noLimp) {
+    const effectiveLimp = clamp01(effectivePfr + profile.openLimpFreq * vpipCompensation);
+    if (percentile <= effectiveLimp) {
+      // Open limp
+      const callAmount = Math.min(bb - currentBet, chips);
+      return { action: 'CALL', amount: callAmount, situation: 'UNOPENED' };
+    }
   }
 
   // BB gets to check for free when pot is unopened and hand is outside raise/limp range
@@ -171,9 +179,12 @@ function situationA(percentile: number, ctx: PreflopContext, rng: () => number, 
  */
 function situationB(percentile: number, ctx: PreflopContext, _rng: () => number, vpipCompensation: number, pfrCompensation: number): PreflopDecision {
   const { profile, bb, chips, currentBet, limperCount } = ctx;
+  const noLimp = ctx.noLimp ?? false;
 
-  const effectivePfr = clamp01(profile.pfr * pfrCompensation);
-  const effectiveVpip = clamp01(profile.vpip * vpipCompensation);
+  // When noLimp is enabled, widen the iso-raise range to include VPIP hands
+  const effectivePfr = noLimp
+    ? clamp01(profile.vpip * vpipCompensation)
+    : clamp01(profile.pfr * pfrCompensation);
 
   if (percentile <= effectivePfr) {
     // Iso-raise
@@ -183,10 +194,14 @@ function situationB(percentile: number, ctx: PreflopContext, _rng: () => number,
     return { action: 'RAISE', amount: amount >= chips ? chips : raiseSize, situation: 'LIMPED' };
   }
 
-  if (percentile <= effectiveVpip) {
-    // Limp behind
-    const callAmount = Math.min(bb - currentBet, chips);
-    return { action: 'CALL', amount: callAmount, situation: 'LIMPED' };
+  // When noLimp is enabled, skip limp-behind — fold instead
+  if (!noLimp) {
+    const effectiveVpip = clamp01(profile.vpip * vpipCompensation);
+    if (percentile <= effectiveVpip) {
+      // Limp behind
+      const callAmount = Math.min(bb - currentBet, chips);
+      return { action: 'CALL', amount: callAmount, situation: 'LIMPED' };
+    }
   }
 
   return { action: 'FOLD', amount: 0, situation: 'LIMPED' };
