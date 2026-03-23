@@ -1,5 +1,4 @@
-import type { Card, AIProfile } from '@/types';
-import type { MadeHandTier, DrawTier } from './hand-classifier';
+import type { Card } from '@/types';
 import { classifyHand } from './hand-classifier';
 import { getBoardCluster } from './board-cluster';
 
@@ -152,8 +151,8 @@ export function classifyHandBucket(
 
   // Overpair
   if (handCategory === 1 && madeTier === 1) {
-    const [high, low] = [holeCards[0].rank, holeCards[1].rank].sort((a, b) => b - a);
-    if (high === low && high > (communityCards[0]?.rank ?? 0)) {
+    const sorted = [holeCards[0].rank, holeCards[1].rank].sort((a, b) => b - a);
+    if (sorted[0] === sorted[1] && sorted[0]! > (communityCards[0]?.rank ?? 0)) {
       return 'overpair';
     }
     return 'tp_good'; // Top pair strong kicker

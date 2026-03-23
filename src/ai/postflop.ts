@@ -4,7 +4,7 @@ import { classifyHandBucket, type ActionLine } from './strategy-key';
 import { getBoardCluster } from './board-cluster';
 import { lookupPolicy, applyDeviation, sampleAction, type MixedPolicy } from './blueprint';
 import { multiwayPenalty } from './spr';
-import type { HandBucket, StageBucket, PotType, SPRBucket } from './strategy-key';
+import type { StageBucket, PotType, SPRBucket } from './strategy-key';
 
 export interface PostflopDecision {
   action: ActionType;
@@ -63,7 +63,7 @@ export interface PostflopContext {
  *           apply profile deviation → multiway adjust → sample action → resolve
  */
 export function makePostflopDecision(ctx: PostflopContext, rng: () => number = Math.random): PostflopDecision {
-  const { holeCards, communityCards, facingBet, potSize, chips, bb, profile } = ctx;
+  const { holeCards, communityCards, facingBet, profile } = ctx;
   const spr = ctx.spr ?? 5;
   const opponents = ctx.opponents ?? 1;
 

@@ -305,16 +305,12 @@ function detectInPosition(
 function detectPotType(actionHistory: Action[]): 'LIMP' | 'SRP' | '3BP' | '4BP' {
   const preflopActions = actionHistory.filter((a) => a.street === 'PREFLOP');
   let raiseCount = 0;
-  let hasLimp = false;
 
   for (const action of preflopActions) {
     if (action.type === 'RAISE' || action.type === 'BET') {
       raiseCount++;
-    } else if (action.type === 'CALL' && raiseCount === 0) {
-      hasLimp = true;
     }
   }
-
   if (raiseCount >= 3) return '4BP';
   if (raiseCount >= 2) return '3BP';
   if (raiseCount >= 1) return 'SRP';
@@ -352,8 +348,8 @@ function detectMatchup(
 function detectActionLine(
   actionHistory: Action[],
   currentStreet: 'FLOP' | 'TURN' | 'RIVER',
-  preflopAggressor: string | null,
-  playerId: string,
+  _preflopAggressor: string | null,
+  _playerId: string,
 ): string {
   // Map current street to previous street
   const prevStreet = currentStreet === 'FLOP' ? 'PREFLOP'

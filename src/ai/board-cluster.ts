@@ -45,13 +45,11 @@ export function classifyFlopCluster(communityCards: Card[]): FlopCluster {
 
   const flop = communityCards.slice(0, 3);
   const ranks = flop.map((c) => c.rank).sort((a, b) => b - a);
-  const suits = flop.map((c) => c.suit);
   const detail = analyzeBoardTexture(flop);
 
   const [high, mid, low] = ranks;
   const hasAce = high === 14;
   const hasKing = high === 13;
-  const highestIsBroadway = high! >= 11; // J+
 
   // Suit analysis
   const isMonotone = detail.maxSuitCount >= 3;

@@ -91,7 +91,6 @@ function classifyMadeHand(
 ): { tier: MadeHandTier; description: string } {
   const [high, low] = holeRanks;
   const topBoardCard = boardRanks[0] ?? 0;
-  const secondBoardCard = boardRanks[1] ?? 0;
 
   // --- Category >= TWO_PAIR: always tier 1 ---
   if (category >= HandCategory.STRAIGHT_FLUSH) {
@@ -206,7 +205,6 @@ function classifyDraws(
   holeCards: [Card, Card],
   communityCards: Card[],
 ): { tier: DrawTier; description: string; isNutDraw: boolean; backdoorFlush: boolean; backdoorStraight: boolean } {
-  const allCards = [...holeCards, ...communityCards];
   const isFlop = communityCards.length === 3;
 
   // --- Flush draw detection ---
@@ -332,16 +330,16 @@ function detectStraightDraws(
   communityCards: Card[],
 ): { oesd: boolean; gutshot: boolean } {
   // We need at least one hole card to contribute to the straight draw
-  const allRanks = [...holeCards, ...communityCards].map((c) => c.rank);
-  const holeRankSet = new Set(holeCards.map((c) => c.rank));
+  const allRanks: number[] = [...holeCards, ...communityCards].map((c) => c.rank);
+  const holeRankSet = new Set<number>(holeCards.map((c) => c.rank));
   const uniqueRanks = [...new Set(allRanks)];
 
   // Add Ace as low (1) for wheel draws
-  const ranks = [...uniqueRanks];
+  const ranks: number[] = [...uniqueRanks];
   if (ranks.includes(14)) ranks.push(1);
 
   // Also check if the completed straight already exists (then it's made, not a draw)
-  const rankSet = new Set(ranks);
+  const rankSet = new Set<number>(ranks);
 
   let oesd = false;
   let gutshot = false;
@@ -402,12 +400,12 @@ function detectBackdoorStraight(
 ): boolean {
   if (communityCards.length !== 3) return false;
 
-  const allRanks = [...holeCards, ...communityCards].map((c) => c.rank);
-  const holeRankSet = new Set(holeCards.map((c) => c.rank));
+  const allRanks: number[] = [...holeCards, ...communityCards].map((c) => c.rank);
+  const holeRankSet = new Set<number>(holeCards.map((c) => c.rank));
   const uniqueRanks = [...new Set(allRanks)];
-  const ranks = [...uniqueRanks];
+  const ranks: number[] = [...uniqueRanks];
   if (ranks.includes(14)) ranks.push(1);
-  const rankSet = new Set(ranks);
+  const rankSet = new Set<number>(ranks);
 
   for (let start = 1; start <= 10; start++) {
     const window = [start, start + 1, start + 2, start + 3, start + 4];
@@ -434,7 +432,7 @@ function computeNutStrength(
   category: HandCategoryType,
   madeTier: MadeHandTier,
   holeRanks: [number, number],
-  boardRanks: number[],
+  _boardRanks: number[],
 ): number {
   // Category-based base strength
   const categoryBase: Record<number, number> = {

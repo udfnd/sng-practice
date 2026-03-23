@@ -1,10 +1,5 @@
-import type { Card, AIProfile } from '@/types';
-import type { HandBucket, StrategyKey, PotType, RelativePosition, ActionLine, SPRBucket, StageBucket } from './strategy-key';
-import { buildStrategyKey, classifyHandBucket } from './strategy-key';
-import { classifyHand } from './hand-classifier';
-import { getBoardCluster } from './board-cluster';
-import { analyzeBoardTexture } from './board-texture';
-import { rangeAdvantageScore } from './spr';
+import type { AIProfile } from '@/types';
+import type { HandBucket, StrategyKey, RelativePosition, ActionLine, SPRBucket } from './strategy-key';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -327,7 +322,7 @@ function getHandBucketAggressorBase(hand: HandBucket): MixedPolicy {
 /**
  * Base defense (facing bet) policy per hand bucket.
  */
-function getHandBucketDefenseBase(hand: HandBucket, line: ActionLine): MixedPolicy {
+function getHandBucketDefenseBase(hand: HandBucket, _line: ActionLine): MixedPolicy {
   // Base: fold/call/raise (check not available when facing bet)
   switch (hand) {
     case 'nuts':
