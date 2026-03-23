@@ -2,9 +2,9 @@ import { describe, it } from 'vitest';
 import { runBatchSimulation, type SimulationConfig } from '@/simulation/batch-runner';
 
 describe('AI Diagnostic: Post-overhaul calibration check', () => {
-  it('20 SNGs quick diagnostic', async () => {
+  it('100 SNGs precision calibration', async () => {
     const config: SimulationConfig = {
-      sngCount: 20,
+      sngCount: 100,
       playersPerSNG: 8,
       presetAssignments: {
         0: 'Nit', 1: 'TAG', 2: 'LAG', 3: 'Station',
@@ -15,7 +15,7 @@ describe('AI Diagnostic: Post-overhaul calibration check', () => {
 
     const result = await runBatchSimulation(config);
 
-    console.log('\n=== AI DIAGNOSTIC: 20 SNG Results ===\n');
+    console.log('\n=== AI DIAGNOSTIC: 100 SNG Results ===\n');
     console.log(`SNGs completed: ${result.sngsCompleted}`);
     console.log(`Avg hand time: ${result.timingMs.avgHandMs.toFixed(2)}ms`);
     console.log(`Total hands: ${result.timingMs.totalHands}\n`);
