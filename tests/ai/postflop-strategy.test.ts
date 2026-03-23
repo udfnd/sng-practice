@@ -268,7 +268,7 @@ describe('Board Texture Impact on aggressor frequencies', () => {
 
   it('wet board produces more check-raises as defender than dry board', () => {
     const dryBoard: Card[] = [
-      makeCard(14, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
+      makeCard(13, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
     ];
     const wetBoard: Card[] = [
       makeCard(9, 'spades'), makeCard(8, 'hearts'), makeCard(7, 'spades'),
@@ -755,7 +755,7 @@ describe('Check-Raise Frequency by board texture', () => {
       makeCard(9, 'spades'), makeCard(8, 'hearts'), makeCard(7, 'spades'),
     ];
     const dryBoard: Card[] = [
-      makeCard(14, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
+      makeCard(13, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
     ];
 
     const wetCtx = makeBaseCtx({ ...facingBetCtxBase, communityCards: wetBoard, profile: PRESETS.Shark });
@@ -764,24 +764,23 @@ describe('Check-Raise Frequency by board texture', () => {
     const wet = runTrials(wetCtx);
     const dry = runTrials(dryCtx);
 
-    // wet: crFreq * 1.3 vs dry: crFreq * 0.5 → wet should produce more raises
+    // Blueprint: wet boards boost raise via applyBoardDefenseAdjust, dry boards reduce
     expect(wet.raise / wet.total).toBeGreaterThan(dry.raise / dry.total);
   });
 
   it('Dry boards produce lower check-raise frequency than wet boards', () => {
     const dryBoard: Card[] = [
-      makeCard(14, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
+      makeCard(13, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs'),
     ];
 
     const dryCtx = makeBaseCtx({
       ...facingBetCtxBase,
       communityCards: dryBoard,
-      profile: { ...PRESETS.Shark, checkRaiseFreq: 0.30 }, // higher base to see difference
+      profile: { ...PRESETS.Shark, checkRaiseFreq: 0.30 },
     });
 
     const dry = runTrials(dryCtx);
-    // Even with high base, dry boards should reduce check-raise (freq * 0.5)
-    // So max ~0.30 * 0.5 = 0.15, but only tier-1 hands raise — keep gentle assertion
+    // Blueprint: dry board reduces raise frequency via board defense adjust
     expect(dry.raise / dry.total).toBeLessThan(0.50);
   });
 

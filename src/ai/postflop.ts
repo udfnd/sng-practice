@@ -1,7 +1,10 @@
 import type { Card, AIProfile, ActionType } from '@/types';
-import { analyzeBoardTexture, textureAdjustment } from './board-texture';
-import { classifyHand, type MadeHandTier, type DrawTier } from './hand-classifier';
-import { sprBetSizing, planBetSizing, rangeAdvantageScore, multiwayPenalty } from './spr';
+import { classifyHand } from './hand-classifier';
+import { classifyHandBucket, type ActionLine } from './strategy-key';
+import { getBoardCluster } from './board-cluster';
+import { lookupPolicy, applyDeviation, sampleAction, type MixedPolicy } from './blueprint';
+import { multiwayPenalty } from './spr';
+import type { HandBucket, StageBucket, PotType, SPRBucket } from './strategy-key';
 
 export interface PostflopDecision {
   action: ActionType;
@@ -33,7 +36,7 @@ export interface PostflopContext {
   /** True when this is a blind vs blind (SB vs BB) heads-up pot. Defaults to false. */
   isBvB?: boolean;
 
-  // --- Phase 2: Node-identifying fields (optional, for Phase 3 policy lookup) ---
+  // --- Phase 2: Node-identifying fields ---
 
   /** True if player acts after all opponents on this street (last to act) */
   inPosition?: boolean;
@@ -54,277 +57,187 @@ export interface PostflopContext {
 }
 
 /**
- * Compute board-dependent check-raise frequency modifier.
+ * Make a postflop decision using blueprint-based policy lookup.
  *
- * Milestone 2: Board-Dependent Check-Raise
+ * Pipeline: classify hand → build strategy key → lookup policy →
+ *           apply profile deviation → multiway adjust → sample action → resolve
  */
-function boardDependentCheckRaiseFreq(
-  baseFreq: number,
-  madeTier: MadeHandTier,
-  drawTier: DrawTier,
-  communityCards: Card[],
-): number {
-  const detail = analyzeBoardTexture(communityCards);
-  let freq = baseFreq;
-
-  // Apply board category multiplier
-  switch (detail.category) {
-    case 'dry':      freq *= 0.5;  break;
-    case 'wet':      freq *= 1.3;  break;
-    case 'monotone': freq *= 1.3;  break;
-    case 'paired':   freq *= 0.8;  break;
-  }
-
-  // Boost for strong draws (flush draw+ with decent made hand)
-  if (madeTier <= 2 && drawTier >= 3) {
-    freq *= 1.4;
-  }
-
-  return clamp01(freq);
-}
-
-/**
- * Make a postflop decision.
- */
-// @MX:TODO | Missing integration tests for aggressor cbet, facing bet, passive decision paths
 export function makePostflopDecision(ctx: PostflopContext, rng: () => number = Math.random): PostflopDecision {
-  const { holeCards, communityCards, isAggressor, facingBet } = ctx;
-  const detail = analyzeBoardTexture(communityCards);
-  const classification = classifyHand(holeCards, communityCards);
-  const texAdj = textureAdjustment(detail.category);
-
-  if (facingBet) {
-    return facingBetDecision(ctx, classification.madeTier, classification.drawTier, texAdj, detail, rng);
-  }
-
-  if (isAggressor) {
-    return aggressorDecision(ctx, classification.madeTier, classification.drawTier, texAdj, detail, rng);
-  }
-
-  // Not aggressor, not facing bet: check or bet (possibly donk)
-  return passiveDecision(ctx, classification.madeTier, classification.drawTier, detail, rng);
-}
-
-/**
- * Aggressor continuation bet / barrel logic.
- *
- * Milestone 3: Barrel Planning & Pot Geometry integrated.
- * Milestone 5: BvB +15-25% c-bet/barrel frequencies.
- */
-function aggressorDecision(
-  ctx: PostflopContext,
-  madeTier: MadeHandTier,
-  drawTier: DrawTier,
-  texAdj: number,
-  detail: ReturnType<typeof analyzeBoardTexture>,
-  rng: () => number,
-): PostflopDecision {
-  const { profile, street, communityCards, potSize, chips, bb } = ctx;
+  const { holeCards, communityCards, facingBet, potSize, chips, bb, profile } = ctx;
   const spr = ctx.spr ?? 5;
   const opponents = ctx.opponents ?? 1;
-  const isBvB = ctx.isBvB ?? false;
 
-  let betFreq: number;
-  switch (street) {
-    case 'FLOP': betFreq = profile.cBetFreq; break;
-    case 'TURN': betFreq = profile.turnBarrel; break;
-    case 'RIVER': betFreq = profile.riverBarrel; break;
+  // Step 1: Classify hand
+  const classification = classifyHand(holeCards, communityCards);
+  const handBucket = classifyHandBucket(classification, holeCards, communityCards);
+
+  // Step 2: Build strategy key
+  const boardCluster = ctx.boardCluster ?? (communityCards.length >= 3 ? getBoardCluster(communityCards) : 'mid_dry');
+  const stage = getStage(ctx.playersRemaining ?? 8);
+  const sprBucket = getSPRBucket(spr);
+  const line = facingBet
+    ? getBetFacingLine(ctx.betPctPot ?? 50)
+    : ((ctx.actionLine ?? 'first') as ActionLine);
+
+  const key = {
+    stage,
+    potType: (ctx.potType ?? 'SRP') as PotType,
+    matchup: ctx.matchup ?? 'unknown',
+    position: (ctx.inPosition ?? ctx.isAggressor) ? 'IP' as const : 'OOP' as const,
+    street: ctx.street,
+    line,
+    spr: sprBucket,
+    board: boardCluster,
+    hand: handBucket,
+  };
+
+  // Step 3: Lookup baseline policy
+  let policy = lookupPolicy(key);
+
+  // Step 4: Apply profile deviation (personality layer, bounded ±8%)
+  policy = applyDeviation(policy, profile, facingBet);
+
+  // Step 5: Multiway adjustment (reduce aggression with multiple opponents)
+  if (opponents > 1 && !facingBet) {
+    const penalty = multiwayPenalty(opponents);
+    policy = applyMultiwayPenalty(policy, penalty);
   }
 
-  // Apply texture adjustment (on every street)
-  betFreq = clamp01(betFreq + texAdj);
-
-  // Milestone 1: On turn/river, reduce barrel frequency if flush/straight completes
-  if (street !== 'FLOP' && (detail.flushComplete || detail.straightComplete)) {
-    betFreq = clamp01(betFreq * 0.8);
+  // Step 6: BvB adjustment
+  if (ctx.isBvB) {
+    policy = applyBvBAdjustment(policy, facingBet);
   }
 
-  // Range advantage adjustment: high advantage → bet more, low → check more
-  const rangeAdv = rangeAdvantageScore(communityCards, true);
-  betFreq = clamp01(betFreq + rangeAdv * 0.15);
-
-  // Multiway penalty: reduce c-bet frequency as opponents increase
-  betFreq = clamp01(betFreq * multiwayPenalty(opponents));
-
-  // Milestone 5: BvB adjustments — +15-25% c-bet/barrel frequencies
-  if (isBvB) {
-    betFreq = clamp01(betFreq * 1.20);
+  // Step 7: Enforce action constraints based on context
+  if (facingBet) {
+    // Facing bet: only fold/call/raise allowed
+    policy = { ...policy, check: 0, bet33: 0, bet66: 0, bet100: 0 };
+    policy = normalizePolicy(policy);
+  } else {
+    // Not facing bet: only check/bet allowed (no fold/call, raise only as "bet")
+    policy = { ...policy, fold: 0, call: 0, raise: 0 };
+    policy = normalizePolicy(policy);
   }
 
-  // Made hand tier adjustment
-  betFreq = adjustForMadeHand(betFreq, madeTier);
+  // Step 8: Sample action
+  const action = sampleAction(policy, rng);
 
-  // Bluff with draws (semi-bluff priority)
-  if (madeTier >= 3 && drawTier >= 2) {
-    // Semi-bluff: increase bet frequency
-    betFreq = clamp01(betFreq + profile.bluffFreq * 0.6);
-  } else if (madeTier === 4 && drawTier === 0) {
-    // Pure air: bluff at reduced frequency
-    betFreq = clamp01(profile.bluffFreq * 0.4);
-  }
-
-  // Milestone 3: River polarization — tier 1 or bluff bets big, tier 2-3 checks more
-  if (street === 'RIVER') {
-    const riverPol = profile.riverPolarization ?? 0.5;
-    if (madeTier === 2 || madeTier === 3) {
-      // Middle strength hands check more on river (polarized strategy)
-      betFreq = clamp01(betFreq * (1 - riverPol * 0.5));
-    } else if (madeTier === 4) {
-      // Pure bluff on river with polarization boost
-      betFreq = clamp01(betFreq * (1 + riverPol * 0.3));
-    }
-    // Tier 1 keeps high bet frequency (value bet)
-  }
-
-  if (rng() < betFreq) {
-    // Milestone 3: Use planBetSizing for street-appropriate sizing
-    const plan = planBetSizing(spr);
-    const streetIndex = street === 'FLOP' ? 0 : street === 'TURN' ? 1 : 2;
-    const planSize = plan[Math.min(streetIndex, plan.length - 1)] ?? sprBetSizing(spr);
-
-    // Blend: weight plan recommendation 70%, preset 30%
-    const blendedSize = planSize * 0.7 + profile.cBetSize * 0.3;
-    const betSize = Math.round(potSize * blendedSize);
-    const amount = Math.min(Math.max(betSize, bb), chips);
-    return { action: 'BET', amount };
-  }
-
-  return { action: 'CHECK', amount: 0 };
+  // Step 9: Resolve to PostflopDecision with chip amounts
+  return resolveAction(action, ctx);
 }
 
-/**
- * Facing bet defense logic.
- *
- * Milestone 2: Board-Dependent Check-Raise.
- * Milestone 5: BvB -15% fold frequencies.
- */
-function facingBetDecision(
+// ---------------------------------------------------------------------------
+// Action resolution
+// ---------------------------------------------------------------------------
+
+function resolveAction(
+  action: ReturnType<typeof sampleAction>,
   ctx: PostflopContext,
-  madeTier: MadeHandTier,
-  drawTier: DrawTier,
-  _texAdj: number,
-  _detail: ReturnType<typeof analyzeBoardTexture>,
-  rng: () => number,
 ): PostflopDecision {
-  const { profile, facingAmount, chips, communityCards } = ctx;
-  const isBvB = ctx.isBvB ?? false;
+  const { potSize, chips, bb, facingAmount } = ctx;
 
-  let foldFreq = profile.foldToCBet;
+  switch (action.type) {
+    case 'CHECK':
+      return { action: 'CHECK', amount: 0 };
 
-  // Adjust fold frequency by hand strength
-  switch (madeTier) {
-    case 1: foldFreq *= 0.1; break;   // Almost never fold strong hands
-    case 2: foldFreq *= 0.5; break;   // Halve fold freq for decent hands
-    case 3: foldFreq *= 0.8; break;   // Slightly reduce
-    case 4: foldFreq *= 1.2; break;   // More likely to fold
-  }
+    case 'FOLD':
+      return { action: 'FOLD', amount: 0 };
 
-  // Draws reduce fold frequency (higher drawTier = stronger draw)
-  if (drawTier >= 1) foldFreq *= 0.85;  // Gutshot: small reduction
-  if (drawTier >= 2) foldFreq *= 0.6;   // OESD+: significant reduction
-  if (drawTier >= 3) foldFreq *= 0.7;   // Flush draw+: additional reduction
-  if (drawTier >= 4) foldFreq *= 0.5;   // Combo/nut draw: rarely fold
-
-  // Milestone 5: BvB -15% fold frequencies
-  if (isBvB) {
-    foldFreq *= 0.85;
-  }
-
-  foldFreq = clamp01(foldFreq);
-
-  // Milestone 2: Board-dependent check-raise
-  const crFreq = boardDependentCheckRaiseFreq(
-    profile.checkRaiseFreq,
-    madeTier,
-    drawTier,
-    communityCards,
-  );
-
-  // Check-raise with strong hands (tier 1) or when board-dependent freq fires
-  if (madeTier === 1 && rng() < crFreq) {
-    const raiseSize = Math.min(Math.round(facingAmount * 3), chips);
-    return { action: 'RAISE', amount: raiseSize };
-  }
-
-  if (rng() < foldFreq) {
-    return { action: 'FOLD', amount: 0 };
-  }
-
-  // Call
-  const callAmount = Math.min(facingAmount, chips);
-  return { action: 'CALL', amount: callAmount };
-}
-
-/**
- * Passive (not aggressor, not facing bet) — check or lead (donk bet).
- *
- * Milestone 4: Donk Betting when rangeAdvantage < -0.3.
- * Milestone 5: BvB +20% donk frequency for BB.
- */
-function passiveDecision(
-  ctx: PostflopContext,
-  madeTier: MadeHandTier,
-  drawTier: DrawTier,
-  _detail: ReturnType<typeof analyzeBoardTexture>,
-  rng: () => number,
-): PostflopDecision {
-  const { profile, potSize, chips, bb, communityCards } = ctx;
-  const spr = ctx.spr ?? 5;
-  const isBvB = ctx.isBvB ?? false;
-
-  // Milestone 4: Donk betting — when board favors the caller's range
-  const rangeAdv = rangeAdvantageScore(communityCards, false); // From caller's perspective
-  const donkBetFreq = profile.donkBetFreq ?? 0;
-
-  if (donkBetFreq > 0 && rangeAdv > 0.3) {
-    // Board favors the out-of-position player (caller)
-    let adjustedDonkFreq = donkBetFreq;
-
-    // Milestone 5: BvB +20% donk frequency for BB
-    if (isBvB) {
-      adjustedDonkFreq = clamp01(adjustedDonkFreq * 1.20);
+    case 'CALL': {
+      const callAmount = Math.min(facingAmount, chips);
+      return { action: 'CALL', amount: callAmount };
     }
 
-    // Stronger hands donate more aggressively
-    if (madeTier <= 2) adjustedDonkFreq *= 1.3;
-    if (drawTier >= 2) adjustedDonkFreq *= 1.2;
+    case 'BET': {
+      const sizePct = action.sizePctPot / 100;
+      const betSize = Math.round(potSize * sizePct);
+      const amount = Math.min(Math.max(betSize, bb), chips);
+      return { action: 'BET', amount };
+    }
 
-    adjustedDonkFreq = clamp01(adjustedDonkFreq);
-
-    if (rng() < adjustedDonkFreq) {
-      // Donk bet sizing: 33-50% pot
-      const donkSize = potSize * (0.33 + rng() * 0.17); // 33-50%
-      const betSize = Math.round(donkSize);
-      return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
+    case 'RAISE': {
+      const raiseSize = Math.min(Math.round(facingAmount * 3), chips);
+      return { action: 'RAISE', amount: raiseSize };
     }
   }
-
-  // Lead with very strong hands occasionally
-  if (madeTier === 1 && rng() < 0.3) {
-    const sprSize = sprBetSizing(spr);
-    const blendedSize = sprSize * 0.7 + profile.cBetSize * 0.3;
-    const betSize = Math.round(potSize * blendedSize);
-    return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
-  }
-
-  // Semi-bluff lead with strong draws
-  if (drawTier >= 2 && rng() < profile.bluffFreq * 0.3) {
-    const betSize = Math.round(potSize * 0.5);
-    return { action: 'BET', amount: Math.min(Math.max(betSize, bb), chips) };
-  }
-
-  return { action: 'CHECK', amount: 0 };
 }
 
-function adjustForMadeHand(baseFreq: number, tier: MadeHandTier): number {
-  switch (tier) {
-    case 1: return clamp01(baseFreq + 0.20);  // Always bet strong
-    case 2: return clamp01(baseFreq + 0.05);
-    case 3: return clamp01(baseFreq - 0.10);
-    case 4: return clamp01(baseFreq - 0.30);  // Rarely bet with nothing
-  }
+// ---------------------------------------------------------------------------
+// Adjustments
+// ---------------------------------------------------------------------------
+
+function applyMultiwayPenalty(policy: MixedPolicy, penalty: number): MixedPolicy {
+  // Reduce betting, increase checking
+  const reduction = 1 - penalty; // e.g., 0.35 for 2 opponents
+  return {
+    check: Math.round(policy.check + (policy.bet33 + policy.bet66 + policy.bet100) * reduction * 0.7),
+    bet33: Math.round(policy.bet33 * penalty),
+    bet66: Math.round(policy.bet66 * penalty),
+    bet100: Math.round(policy.bet100 * penalty),
+    fold: policy.fold,
+    call: policy.call,
+    raise: Math.round(policy.raise * penalty),
+  };
 }
 
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
+function applyBvBAdjustment(policy: MixedPolicy, isFacingBet: boolean): MixedPolicy {
+  if (isFacingBet) {
+    // BvB: defend wider (fold less)
+    return {
+      ...policy,
+      fold: Math.round(policy.fold * 0.85),
+      call: Math.round(policy.call * 1.1),
+      raise: policy.raise,
+    };
+  }
+  // BvB aggressor: bet more
+  return {
+    ...policy,
+    check: Math.round(policy.check * 0.85),
+    bet33: Math.round(policy.bet33 * 1.15),
+    bet66: Math.round(policy.bet66 * 1.15),
+    bet100: policy.bet100,
+  };
+}
+
+function normalizePolicy(p: MixedPolicy): MixedPolicy {
+  const total = p.check + p.bet33 + p.bet66 + p.bet100 + p.fold + p.call + p.raise;
+  if (total === 0) return { check: 1000, bet33: 0, bet66: 0, bet100: 0, fold: 0, call: 0, raise: 0 };
+  const scale = 1000 / total;
+  return {
+    check: Math.round(p.check * scale),
+    bet33: Math.round(p.bet33 * scale),
+    bet66: Math.round(p.bet66 * scale),
+    bet100: Math.round(p.bet100 * scale),
+    fold: Math.round(p.fold * scale),
+    call: Math.round(p.call * scale),
+    raise: Math.round(p.raise * scale),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers (duplicated from strategy-key.ts to avoid circular dependency)
+// ---------------------------------------------------------------------------
+
+function getSPRBucket(spr: number): SPRBucket {
+  if (spr < 2) return 'lt2';
+  if (spr < 4) return '2to4';
+  if (spr < 8) return '4to8';
+  return '8plus';
+}
+
+function getStage(playersRemaining: number): StageBucket {
+  if (playersRemaining <= 2) return 'hu';
+  if (playersRemaining === 3) return '3left';
+  if (playersRemaining === 4) return 'bubble';
+  return 'chipEV';
+}
+
+function getBetFacingLine(betPctPot: number): ActionLine {
+  if (betPctPot <= 28) return 'vs25';
+  if (betPctPot <= 40) return 'vs33';
+  if (betPctPot <= 62) return 'vs50';
+  if (betPctPot <= 87) return 'vs75';
+  if (betPctPot <= 110) return 'vs100';
+  return 'vsOverbet';
 }

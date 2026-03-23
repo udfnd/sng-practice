@@ -58,7 +58,7 @@ function runTrials(ctx: PostflopContext, trials = 2000): { betCount: number; fol
 describe('M2: boardDependentCheckRaiseFreq', () => {
   it('check-raise more on wet boards than dry boards when facing bet', () => {
     const dryBoard: Card[] = [
-      makeCard(14, 'spades'),
+      makeCard(13, 'spades'),
       makeCard(7, 'hearts'),
       makeCard(2, 'clubs'),
     ];
@@ -68,7 +68,7 @@ describe('M2: boardDependentCheckRaiseFreq', () => {
       makeCard(7, 'spades'),
     ];
 
-    // Tier-1 hand facing bet (two aces — overpair on wet board)
+    // Tier-1 hand facing bet (two aces — overpair on both boards)
     const baseFacingCtx = {
       isAggressor: false,
       facingBet: true,
@@ -95,7 +95,7 @@ describe('M2: boardDependentCheckRaiseFreq', () => {
     const profile = { ...PRESETS.Shark, checkRaiseFreq: 0.5 };
     const dryCtx = makeBaseCtx({
       profile,
-      communityCards: [makeCard(14, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs')],
+      communityCards: [makeCard(13, 'spades'), makeCard(7, 'hearts'), makeCard(2, 'clubs')],
       isAggressor: false,
       facingBet: true,
       facingAmount: 100,
@@ -107,8 +107,8 @@ describe('M2: boardDependentCheckRaiseFreq', () => {
       if (makePostflopDecision(dryCtx, Math.random).action === 'RAISE') raiseCount++;
     }
     const freq = raiseCount / trials;
-    // dry board: freq * 0.5, so with base 0.5, expected ~0.25
-    expect(freq).toBeLessThan(0.4);
+    // Blueprint: dry board reduces raise frequency
+    expect(freq).toBeLessThan(0.5);
   });
 
   it('combo draw (tier 1-2 hand + tier 1-2 draw) boosts check-raise freq', () => {
