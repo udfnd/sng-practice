@@ -1,8 +1,24 @@
 import { memo } from 'react';
-import type { Card } from '@/types';
+import type { Card, Suit } from '@/types';
 import { PlayingCard } from '@/components/card/PlayingCard';
 import { useGameStore } from '@/store/game-store';
 import { formatAmount } from '@/utils/format-chips';
+
+const SUIT_NAMES: Record<Suit, string> = {
+  spades: 'spades',
+  hearts: 'hearts',
+  diamonds: 'diamonds',
+  clubs: 'clubs',
+};
+
+const RANK_NAMES: Record<number, string> = {
+  2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
+  10: '10', 11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace',
+};
+
+function describeCard(card: Card): string {
+  return `${RANK_NAMES[card.rank]} of ${SUIT_NAMES[card.suit]}`;
+}
 
 interface PokerTableProps {
   communityCards: Card[];
@@ -15,6 +31,10 @@ export const PokerTable = memo(function PokerTable({
 }: PokerTableProps) {
   const displayMode = useGameStore((s) => s.displayMode);
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
+
+  const communityCardDescriptions = communityCards.length > 0
+    ? communityCards.map(describeCard).join(', ')
+    : 'none';
 
   return (
     <div className="w-full h-full relative">
@@ -46,25 +66,28 @@ export const PokerTable = memo(function PokerTable({
           }}
         />
 
-        {/* Community Cards */}
-        <div className="flex gap-2 relative z-10" style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}>
+        {/* Community Cards — size adapts to viewport per SPEC-UI-006 */}
+        <div
+          className="flex gap-1 sm:gap-2 relative z-10"
+          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}
+          aria-label={`Community cards: ${communityCardDescriptions}`}
+        >
           {Array.from({ length: 5 }).map((_, i) => {
             const card = communityCards[i];
             return card ? (
-              <div key={`${card.encoded}-${i}`} className="transition-opacity duration-300">
-                <PlayingCard card={card} size="md" animate />
+              <div key={`${card.encoded}-${i}`} className="community-card transition-opacity duration-300">
+                <PlayingCard card={card} size="xs" animate animationDelay={i * 100} />
               </div>
             ) : (
               <div
                 key={i}
-                className="rounded"
+                className="community-card-placeholder rounded"
                 style={{
-                  width: '68px',
-                  height: '95px',
                   border: '1px solid rgba(255,255,255,0.06)',
                   background: 'rgba(0,0,0,0.18)',
                   boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
                 }}
+                aria-hidden="true"
               />
             );
           })}
@@ -72,6 +95,9 @@ export const PokerTable = memo(function PokerTable({
 
         {/* Pot display */}
         <div
+          role="status"
+          aria-label={`Pot: ${formatAmount(potAmount, bb, displayMode)}`}
+          aria-live="polite"
           className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300"
           style={{
             opacity: potAmount > 0 ? 1 : 0,

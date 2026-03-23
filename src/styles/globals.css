@@ -1,42 +1,83 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --felt-color: #2d6a3f;
-  --felt-mid: #1a5c2a;
-  --felt-dark: #0f3d1a;
-  --felt-edge: #0a2a12;
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-tertiary: #6e7681;
-  --bg-primary: #0d1117;
-  --bg-surface: #161b22;
-  --bg-surface-2: #1c2230;
-  --border-subtle: #30363d;
-  --accent-yellow: #fbbf24;
-  --accent-red: #ef4444;
-  --accent-blue: #58a6ff;
-  --accent-green: #3fb950;
-  --table-rail: #6b3f10;
-  --table-rail-light: #8b5520;
+  /* Core Background Colors */
+  --bg-primary:    #0a0e14;
+  --bg-surface:    #141b24;
+  --bg-surface-2:  #1c2530;
+
+  /* Felt Colors */
+  --felt-color:    #1a5c2a;
+  --felt-dark:     #0f3d1a;
+  --felt-light:    #2d7a3f;
+
+  /* Accent Colors */
+  --accent-primary:  #3b82f6;
+  --accent-danger:   #ef4444;
+  --accent-warning:  #eab308;
+  --accent-success:  #22c55e;
+  --accent-info:     #6366f1;
+  --accent-muted:    #64748b;
+
+  /* Chip Colors */
+  --chip-white:  #f0f0f0;
+  --chip-red:    #cc3333;
+  --chip-blue:   #3366cc;
+  --chip-green:  #339933;
+  --chip-black:  #333333;
+
+  /* Card Colors */
+  --card-red:    #dc2626;
+  --card-black:  #e5e7eb;
+  --card-face:   #1e293b;
+  --card-border: #334155;
+
+  /* Text Colors */
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary:  #64748b;
+
+  /* Border Radius System */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 9999px;
+
+  /* Motion Tokens */
+  --motion-fast:   150ms;
+  --motion-normal: 300ms;
+  --motion-slow:   500ms;
+
+  /* Elevation / Shadow */
+  --shadow-level-0: none;
+  --shadow-level-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-level-2: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-level-3: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-level-4: 0 8px 16px rgba(0, 0, 0, 0.6);
+  --shadow-glow-blue:   0 0 12px rgba(59, 130, 246, 0.4);
+  --shadow-glow-yellow: 0 0 12px rgba(234, 179, 8, 0.4);
+  --shadow-glow-green:  0 0 16px rgba(34, 197, 94, 0.5);
 }
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   margin: 0;
   min-height: 100vh;
 }
 
-.dark {
-  --felt-color: #143a1e;
-  --felt-dark: #0a2510;
+/* Monospace font for all numeric displays (chip amounts, pot, bets) */
+.font-numeric {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
 }
 
 /* Safe area support for notched phones */
@@ -133,4 +174,199 @@ input[type='range']::-moz-range-thumb {
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Chip to pot movement animation */
+@keyframes chipToPot {
+  0%   { transform: translateX(0) translateY(0) scale(0.8); opacity: 0; }
+  100% { transform: translateX(var(--tx, 0px)) translateY(var(--ty, 0px)) scale(1); opacity: 1; }
+}
+
+/* Pot award burst animation */
+@keyframes potAward {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* Win glow — small pot win (green) */
+@keyframes winGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  50%       { box-shadow: 0 0 16px rgba(34, 197, 94, 0.5); }
+}
+
+/* Win glow gold — large pot / all-in win */
+@keyframes winGlowGold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+  50%       { box-shadow: 0 0 24px rgba(234, 179, 8, 0.6); }
+}
+
+/* Card flip for showdown reveal */
+@keyframes cardFlip {
+  0%   { transform: rotateY(0deg); }
+  50%  { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+/* Stack change counter animation */
+@keyframes stackChange {
+  0%   { transform: translateY(0); color: inherit; }
+  50%  { transform: translateY(-4px); }
+  100% { transform: translateY(0); color: inherit; }
+}
+
+/* Prefers-reduced-motion: disable all animations for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Responsive TopBar height ─────────────────────────────────────── */
+/* Mobile portrait: 48px, landscape: 50px, tablet: 55px, desktop: 60px */
+.topbar-responsive {
+  height: 48px;
+}
+@media (min-width: 640px) {
+  .topbar-responsive { height: 50px; }
+}
+@media (min-width: 768px) {
+  .topbar-responsive { height: 55px; }
+}
+@media (min-width: 1024px) {
+  .topbar-responsive { height: 60px; }
+}
+
+/* ─── Responsive TableArea outer padding ────────────────────────────── */
+/* Reduce padding on mobile so the table takes more available space.
+   Mobile portrait: 40px 40px, landscape: 44px 60px, tablet: 52px 72px, desktop: 56px 80px */
+.tablearea-outer {
+  padding: 40px 40px;
+}
+@media (min-width: 640px) {
+  .tablearea-outer { padding: 44px 60px; }
+}
+@media (min-width: 768px) {
+  .tablearea-outer { padding: 52px 72px; }
+}
+@media (min-width: 1024px) {
+  .tablearea-outer { padding: 56px 80px; }
+}
+
+/* ─── Community card placeholder — matches PlayingCard size per breakpoint ── */
+/* Mobile (xs-card): 32x45px, landscape: 48x67px, tablet+: 64x90px */
+.community-card-placeholder {
+  width: 32px;
+  height: 45px;
+}
+@media (min-width: 640px) {
+  .community-card-placeholder { width: 48px; height: 67px; }
+}
+@media (min-width: 768px) {
+  .community-card-placeholder { width: 64px; height: 90px; }
+}
+
+/* ─── PlayingCard responsive community card wrapper ────────────────── */
+/* Allow community card SVGs to scale up with breakpoints */
+.community-card svg {
+  width: 32px;
+  height: 45px;
+}
+@media (min-width: 640px) {
+  .community-card svg { width: 48px; height: 67px; }
+}
+@media (min-width: 768px) {
+  .community-card svg { width: 64px; height: 90px; }
+}
+
+/* ─── PlayerSeat hole card sizes per breakpoint ─────────────────────── */
+/* Hole cards are smaller than community cards since they're on seats */
+.seat-hole-card svg {
+  width: 28px;
+  height: 39px;
+}
+@media (min-width: 640px) {
+  .seat-hole-card svg { width: 40px; height: 56px; }
+}
+@media (min-width: 768px) {
+  .seat-hole-card svg { width: 48px; height: 67px; }
+}
+@media (min-width: 1024px) {
+  .seat-hole-card svg { width: 48px; height: 67px; }
+}
+
+/* ─── PlayerSeat badge min-width per breakpoint ──────────────────────── */
+/* Mobile: 80px, desktop: 110px */
+.player-seat-badge {
+  min-width: 80px;
+}
+@media (min-width: 640px) {
+  .player-seat-badge { min-width: 90px; }
+}
+@media (min-width: 768px) {
+  .player-seat-badge { min-width: 100px; }
+}
+@media (min-width: 1024px) {
+  .player-seat-badge { min-width: 110px; }
+}
+
+.player-seat-badge-hero {
+  min-width: 88px;
+}
+@media (min-width: 640px) {
+  .player-seat-badge-hero { min-width: 100px; }
+}
+@media (min-width: 768px) {
+  .player-seat-badge-hero { min-width: 112px; }
+}
+@media (min-width: 1024px) {
+  .player-seat-badge-hero { min-width: 124px; }
+}
+
+/* ─── Font sizes for player seat per breakpoint ──────────────────────── */
+/* Mobile: 10px name / 11px stack, Desktop: 12px name / 13px stack */
+.seat-name-text {
+  font-size: 10px;
+}
+@media (min-width: 768px) {
+  .seat-name-text { font-size: 12px; }
+}
+
+.seat-stack-text {
+  font-size: 11px;
+}
+@media (min-width: 768px) {
+  .seat-stack-text { font-size: 13px; }
+}
+
+/* ─── ActionPanel safe-area bottom padding ──────────────────────────── */
+.action-panel-safe {
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* ─── ActionPanel height — set in App.tsx inline, but safe area via class ─ */
+/* Touch target enforcement: slider gets taller on mobile */
+@media (max-width: 639px) {
+  .ap-slider { height: 48px !important; }
+}
+
+/* ─── Visually hidden but screen-reader accessible ──────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ─── Visible focus indicators for keyboard navigation ──────────────── */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }

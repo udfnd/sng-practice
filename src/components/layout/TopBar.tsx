@@ -16,8 +16,10 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
 
   return (
     <header
+      role="banner"
+      aria-label="Game status"
+      className="topbar-responsive"
       style={{
-        height: '40px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -30,6 +32,7 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
       {/* Left: blind level info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div
+          aria-label={`Blind level ${blindLevel?.level ?? 1}: ${blindLevel?.sb ?? 10}/${blindLevel?.bb ?? 20}${blindLevel?.ante ? ` ante ${blindLevel.ante}` : ''}`}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -53,13 +56,18 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
       </div>
 
       {/* Center: hand number */}
-      <span style={{ color: '#6e7681', fontSize: '12px', fontWeight: 500 }}>
+      <span
+        aria-label={`Hand number ${handNumber}`}
+        style={{ color: '#6e7681', fontSize: '12px', fontWeight: 500 }}
+      >
         Hand #{handNumber}
       </span>
 
-      {/* Right: players + display mode + mobile toggle */}
+      {/* Right: players (tablet+) + display mode + mobile toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span
+          className="hidden sm:inline"
+          aria-label={`${activePlayers} active players`}
           style={{
             fontSize: '12px',
             fontWeight: 500,
@@ -87,7 +95,8 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
             background: displayMode === 'bb' ? '#fbbf24' : '#21262d',
             color: displayMode === 'bb' ? '#000' : '#8b949e',
           }}
-          aria-label={displayMode === 'bb' ? 'Switch to chip display' : 'Switch to BB display'}
+          aria-label="Toggle big blind display"
+          aria-pressed={displayMode === 'bb'}
           title={displayMode === 'bb' ? 'Showing amounts in BB — click to switch to chips' : 'Showing amounts in chips — click to switch to BB'}
         >
           {displayMode === 'bb' ? 'BB' : '$'}

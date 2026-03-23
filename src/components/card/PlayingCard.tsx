@@ -3,9 +3,11 @@ import type { Card, Suit } from '@/types';
 
 interface PlayingCardProps {
   card: Card;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   faceDown?: boolean;
   animate?: boolean;
+  /** Stagger delay in ms for deal animation (e.g. index * 100) */
+  animationDelay?: number;
 }
 
 const SUIT_SYMBOLS: Record<Suit, string> = {
@@ -13,6 +15,18 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
   hearts: '♥',
   diamonds: '♦',
   clubs: '♣',
+};
+
+const SUIT_NAMES: Record<Suit, string> = {
+  spades: 'spades',
+  hearts: 'hearts',
+  diamonds: 'diamonds',
+  clubs: 'clubs',
+};
+
+const RANK_NAMES: Record<number, string> = {
+  2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
+  10: '10', 11: 'Jack', 12: 'Queen', 13: 'King', 14: 'Ace',
 };
 
 const SUIT_FILL_COLORS: Record<Suit, string> = {
@@ -33,17 +47,20 @@ const VB_W = 60;
 const VB_H = 84;
 
 const CONTAINER_SIZE = {
-  sm: 'w-[58px] h-[81px]',
-  md: 'w-[68px] h-[95px]',
+  xs: 'w-[32px] h-[45px]',
+  sm: 'w-[48px] h-[67px]',
+  md: 'w-[64px] h-[90px]',
   lg: 'w-[88px] h-[123px]',
 };
 
-function FaceDownCard({ size }: { size: 'sm' | 'md' | 'lg' }) {
+function FaceDownCard({ size }: { size: 'xs' | 'sm' | 'md' | 'lg' }) {
   return (
     <svg
       viewBox={`0 0 ${VB_W} ${VB_H}`}
       className={`${CONTAINER_SIZE[size]} drop-shadow-md select-none`}
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Face down card"
     >
       <rect width={VB_W} height={VB_H} rx="5" fill="#1e3a5f" />
       <rect x="3" y="3" width={VB_W - 6} height={VB_H - 6} rx="3" fill="none" stroke="#4a7ab5" strokeWidth="1" />
@@ -59,16 +76,20 @@ function FaceDownCard({ size }: { size: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
+function FaceUpCard({ card, size }: { card: Card; size: 'xs' | 'sm' | 'md' | 'lg' }) {
   const rank = RANK_DISPLAY[card.rank];
   const suit = SUIT_SYMBOLS[card.suit];
   const color = SUIT_FILL_COLORS[card.suit];
+  const rankName = RANK_NAMES[card.rank];
+  const suitName = SUIT_NAMES[card.suit];
 
   return (
     <svg
       viewBox={`0 0 ${VB_W} ${VB_H}`}
       className={`${CONTAINER_SIZE[size]} drop-shadow-md select-none`}
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={`${rankName} of ${suitName}`}
     >
       {/* Card background */}
       <rect width={VB_W} height={VB_H} rx="5" fill="#1e293b" />
@@ -132,22 +153,26 @@ function FaceUpCard({ card, size }: { card: Card; size: 'sm' | 'md' | 'lg' }) {
 
 export const PlayingCard = memo(function PlayingCard({
   card,
-  size = 'md',
+  size = 'sm',
   faceDown = false,
   animate = false,
+  animationDelay = 0,
 }: PlayingCardProps) {
   const animateClass = animate ? 'animate-deal' : '';
+  const style = animate && animationDelay > 0
+    ? { animationDelay: `${animationDelay}ms` }
+    : undefined;
 
   if (faceDown) {
     return (
-      <div className={animateClass}>
+      <div className={animateClass} style={style}>
         <FaceDownCard size={size} />
       </div>
     );
   }
 
   return (
-    <div className={animateClass}>
+    <div className={animateClass} style={style}>
       <FaceUpCard card={card} size={size} />
     </div>
   );

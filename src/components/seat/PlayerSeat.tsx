@@ -7,11 +7,14 @@ import { formatAmount } from '@/utils/format-chips';
 interface PlayerSeatProps {
   player: Player;
   isButton: boolean;
+  /** Whether this seat belongs to the human player — renders larger with blue highlight */
+  isHero?: boolean;
 }
 
 export const PlayerSeat = memo(function PlayerSeat({
   player,
   isButton,
+  isHero = false,
 }: PlayerSeatProps) {
   const thinkingPlayerId = useGameStore((s) => s.thinkingPlayerId);
   const isHumanTurn = useGameStore((s) => s.isHumanTurn);
@@ -32,12 +35,15 @@ export const PlayerSeat = memo(function PlayerSeat({
     ? 'BB'
     : null;
 
+  // CSS classes handle responsive width (see globals.css .player-seat-badge[-hero])
+  const badgeClass = isHero ? 'player-seat-badge-hero' : 'player-seat-badge';
+
   if (!player.isActive) {
     return (
       <div
+        className={badgeClass}
         style={{
-          width: '88px',
-          height: '36px',
+          minHeight: '36px',
           borderRadius: '8px',
           background: '#0d1117',
           border: '1px solid #21262d',
@@ -46,6 +52,7 @@ export const PlayerSeat = memo(function PlayerSeat({
           justifyContent: 'center',
           opacity: 0.25,
         }}
+        aria-hidden="true"
       >
         <span style={{ color: '#6e7681', fontSize: '11px' }}>Empty</span>
       </div>
@@ -53,12 +60,12 @@ export const PlayerSeat = memo(function PlayerSeat({
   }
 
   // Border & glow state
-  let borderColor = '#30363d';
+  let borderColor = isHero ? '#1e40af' : '#30363d';
   let boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-  let bgColor = '#161b22';
+  let bgColor = isHero ? 'rgba(14,20,36,0.85)' : 'rgba(20,27,36,0.75)';
 
   if (player.isFolded) {
-    bgColor = 'rgba(13,17,23,0.75)';
+    bgColor = 'rgba(13,17,23,0.65)';
   } else if (player.isAllIn) {
     bgColor = 'rgba(127,29,29,0.45)';
     borderColor = '#ef4444';
@@ -94,27 +101,34 @@ export const PlayerSeat = memo(function PlayerSeat({
     background: bgColor,
     border: `1.5px solid ${borderColor}`,
     borderRadius: '10px',
-    padding: '5px 7px',
+    padding: isHero ? '6px 9px' : '5px 7px',
     position: 'relative',
     boxShadow,
     opacity: player.isFolded ? 0.42 : 1,
     transition: 'border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease',
-    minWidth: '88px',
-    maxWidth: '140px',
   };
 
+  const positionLabel = positionBadge ? `, ${positionBadge}` : '';
+  const seatAriaLabel = player.isHuman
+    ? `You, ${player.chips} chips${positionLabel}`
+    : `${player.name}, ${player.chips} chips${positionLabel}`;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-      {/* Hole Cards */}
+    <div
+      role="region"
+      aria-label={seatAriaLabel}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}
+    >
+      {/* Hole Cards — responsive size via CSS class on wrapper */}
       {player.holeCards && (
-        <div style={{ display: 'flex', gap: '2px', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))' }}>
-          <PlayingCard card={player.holeCards[0]} size="sm" faceDown={!showFaceUp} animate />
-          <PlayingCard card={player.holeCards[1]} size="sm" faceDown={!showFaceUp} animate />
+        <div className="seat-hole-card" style={{ display: 'flex', gap: '2px', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))' }}>
+          <PlayingCard card={player.holeCards[0]} size="xs" faceDown={!showFaceUp} animate animationDelay={0} />
+          <PlayingCard card={player.holeCards[1]} size="xs" faceDown={!showFaceUp} animate animationDelay={100} />
         </div>
       )}
 
       {/* Player Info Badge */}
-      <div className={animClass} style={seatStyle}>
+      <div className={`${animClass} ${badgeClass}`} style={seatStyle}>
         {/* Position label pill */}
         {positionBadge && (
           <div
@@ -185,8 +199,8 @@ export const PlayerSeat = memo(function PlayerSeat({
             {player.name.charAt(0).toUpperCase()}
           </div>
           <span
+            className="seat-name-text"
             style={{
-              fontSize: '12px',
               fontWeight: 600,
               color: player.isHuman ? '#93c5fd' : '#e6edf3',
               overflow: 'hidden',
@@ -201,8 +215,8 @@ export const PlayerSeat = memo(function PlayerSeat({
 
         {/* Stack */}
         <span
+          className="seat-stack-text"
           style={{
-            fontSize: '13px',
             fontWeight: 700,
             color: '#fbbf24',
             fontVariantNumeric: 'tabular-nums',

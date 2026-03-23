@@ -2,6 +2,67 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/game-store';
 import { formatAmount, bbToChips, chipsToBB } from '@/utils/format-chips';
 
+// Custom slider styles injected once per page
+const SLIDER_STYLE_ID = 'action-panel-slider-styles';
+function ensureSliderStyles() {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(SLIDER_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = SLIDER_STYLE_ID;
+  style.textContent = `
+    .ap-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 44px;
+      background: transparent;
+      cursor: pointer;
+      outline: none;
+    }
+    @media (max-width: 640px) {
+      .ap-slider { height: 48px; }
+    }
+    .ap-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+    }
+    .ap-slider::-moz-range-track {
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+    }
+    .ap-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #eab308;
+      cursor: pointer;
+      margin-top: -7px;
+      box-shadow: 0 0 0 3px rgba(234,179,8,0.22);
+      transition: box-shadow 0.15s ease;
+    }
+    .ap-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #eab308;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 0 3px rgba(234,179,8,0.22);
+    }
+    .ap-slider:focus::-webkit-slider-thumb {
+      box-shadow: 0 0 0 4px rgba(234,179,8,0.4);
+    }
+    .ap-slider:focus::-moz-range-thumb {
+      box-shadow: 0 0 0 4px rgba(234,179,8,0.4);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 export function ActionPanel() {
   const isHumanTurn = useGameStore((s) => s.isHumanTurn);
   const validActions = useGameStore((s) => s.validActions);
@@ -15,6 +76,9 @@ export function ActionPanel() {
 
   const [raiseAmount, setRaiseAmount] = useState(0);
   const [allInConfirm, setAllInConfirm] = useState(false);
+
+  // Inject slider styles on first render
+  useEffect(() => { ensureSliderStyles(); }, []);
 
   const canFold = validActions.includes('FOLD');
   const canCheck = validActions.includes('CHECK');
@@ -109,14 +173,14 @@ export function ActionPanel() {
     { label: '3 BB', bb: 3 },
   ];
 
-  // Shared button base styles
+  // Shared button base styles — 48px min height for touch targets (WCAG 2.5.5)
   const btnStyle: React.CSSProperties = {
-    height: '44px',
-    minWidth: '80px',
-    padding: '0 16px',
+    height: '48px',
+    minWidth: '88px',
+    padding: '0 18px',
     borderRadius: '8px',
     fontWeight: 700,
-    fontSize: '13px',
+    fontSize: '14px',
     cursor: 'pointer',
     border: 'none',
     transition: 'filter 0.1s ease, transform 0.1s ease',
@@ -132,22 +196,24 @@ export function ActionPanel() {
     <span style={{ fontSize: '10px', opacity: 0.45, fontWeight: 400 }}>[{key}]</span>
   );
 
+  // Pill-shaped preset buttons
   const presetBtnStyle: React.CSSProperties = {
     height: '28px',
-    padding: '0 10px',
-    borderRadius: '5px',
+    padding: '0 12px',
+    borderRadius: '14px',
     fontSize: '11px',
-    fontWeight: 500,
+    fontWeight: 600,
     cursor: 'pointer',
-    border: '1px solid #30363d',
+    border: '1px solid #334155',
     background: '#1c2230',
-    color: '#8b949e',
-    transition: 'background 0.1s ease',
+    color: '#94a3b8',
+    transition: 'background 0.1s ease, color 0.1s ease',
     whiteSpace: 'nowrap',
   };
 
   return (
     <div
+      className="action-panel-safe"
       style={{
         height: '100%',
         display: 'flex',
@@ -158,6 +224,7 @@ export function ActionPanel() {
         background: 'linear-gradient(180deg, #161b22 0%, #0d1117 100%)',
         borderTop: '1px solid #30363d',
         boxShadow: '0 -4px 16px rgba(0,0,0,0.35)',
+        boxSizing: 'border-box',
       }}
     >
       {/* Main action buttons row */}
@@ -165,10 +232,12 @@ export function ActionPanel() {
         {canFold && (
           <button
             onClick={() => { submitAction('FOLD', 0); setAllInConfirm(false); }}
-            style={{ ...btnStyle, background: 'linear-gradient(135deg, #c0392b, #a93226)', color: '#fff' }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff' }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-            aria-label="Fold hand (F)"
+            aria-label="Fold hand"
+            title="Fold (F)"
+            tabIndex={0}
           >
             Fold {keyHint('F')}
           </button>
@@ -177,10 +246,12 @@ export function ActionPanel() {
         {canCheck && (
           <button
             onClick={() => { submitAction('CHECK', 0); setAllInConfirm(false); }}
-            style={{ ...btnStyle, background: 'linear-gradient(135deg, #27ae60, #1e8449)', color: '#fff' }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff' }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-            aria-label="Check (C)"
+            aria-label="Check"
+            title="Check/Call (C)"
+            tabIndex={0}
           >
             Check {keyHint('C')}
           </button>
@@ -189,10 +260,12 @@ export function ActionPanel() {
         {canCall && (
           <button
             onClick={() => { submitAction('CALL', callAmount); setAllInConfirm(false); }}
-            style={{ ...btnStyle, background: 'linear-gradient(135deg, #2980b9, #2471a3)', color: '#fff' }}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff' }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-            aria-label={`Call ${formatAmount(callAmount, bb, displayMode)} (C)`}
+            aria-label={`Call ${formatAmount(callAmount, bb, displayMode)} chips`}
+            title="Check/Call (C)"
+            tabIndex={0}
           >
             Call {formatAmount(callAmount, bb, displayMode)} {keyHint('C')}
           </button>
@@ -201,10 +274,12 @@ export function ActionPanel() {
         {canBetOrRaise && (
           <button
             onClick={() => handleBetOrRaise(currentRaiseAmt)}
-            style={{ ...btnStyle, background: 'linear-gradient(135deg, #e67e22, #ca6f1e)', color: '#fff' }}
-            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.12)')}
+            style={{ ...btnStyle, background: 'linear-gradient(135deg, #eab308, #ca8a04)', color: '#0f172a' }}
+            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-            aria-label={`${canRaise ? 'Raise' : 'Bet'} ${formatAmount(currentRaiseAmt, bb, displayMode)} (R)`}
+            aria-label={`${canRaise ? 'Raise to' : 'Bet'} ${formatAmount(currentRaiseAmt, bb, displayMode)} chips`}
+            title="Raise (R)"
+            tabIndex={0}
           >
             {canRaise ? 'Raise' : 'Bet'} {formatAmount(currentRaiseAmt, bb, displayMode)} {keyHint('R')}
           </button>
@@ -218,18 +293,20 @@ export function ActionPanel() {
             ...btnStyle,
             marginLeft: 'auto',
             background: allInConfirm
-              ? 'linear-gradient(135deg, #922b21, #7b241c)'
-              : 'linear-gradient(135deg, #641e16, #4a1311)',
+              ? 'linear-gradient(135deg, #b91c1c, #991b1b)'
+              : 'linear-gradient(135deg, #7f1d1d, #5a1414)',
             color: '#fff',
-            border: allInConfirm ? '1.5px solid #ef4444' : '1px solid rgba(239,68,68,0.25)',
-            boxShadow: allInConfirm ? '0 0 12px rgba(239,68,68,0.45)' : 'none',
+            border: allInConfirm ? '1.5px solid #ef4444' : '1px solid rgba(239,68,68,0.3)',
+            boxShadow: allInConfirm ? '0 0 14px rgba(239,68,68,0.5)' : 'none',
             opacity: (!canBetOrRaise && !canCall) ? 0.38 : 1,
           }}
           onMouseEnter={(e) => { if (!(!canBetOrRaise && !canCall)) e.currentTarget.style.filter = 'brightness(1.15)'; }}
           onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-          aria-label={`All-in ${formatAmount(humanPlayer.chips, bb, displayMode)} (A)`}
+          aria-label={`Go all-in with ${formatAmount(humanPlayer.chips, bb, displayMode)} chips`}
+          title="All-in (A)"
+          tabIndex={0}
         >
-          {allInConfirm ? 'Confirm?' : `All-In ${formatAmount(humanPlayer.chips, bb, displayMode)}`}
+          {allInConfirm ? 'Confirm All-In?' : `All-In ${formatAmount(humanPlayer.chips, bb, displayMode)}`}
           {!allInConfirm && keyHint('A')}
         </button>
       </div>
@@ -240,21 +317,28 @@ export function ActionPanel() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
               type="range"
+              className="ap-slider"
               min={sliderMin}
               max={sliderMax}
               step={sliderStep}
               value={sliderValue}
               onChange={handleSliderChange}
-              style={{ flex: 1, cursor: 'pointer' }}
-              aria-label="Bet amount slider"
+              style={{ flex: 1 }}
+              aria-label="Bet amount"
+              aria-valuemin={sliderMin}
+              aria-valuemax={sliderMax}
+              aria-valuenow={sliderValue}
+              aria-valuetext={`Bet ${formatAmount(currentRaiseAmt, bb, displayMode)} chips`}
+              tabIndex={0}
             />
             <span
               style={{
-                fontSize: '13px',
+                fontSize: '16px',
                 fontWeight: 700,
-                color: '#e6edf3',
+                color: '#eab308',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                 fontVariantNumeric: 'tabular-nums',
-                minWidth: '72px',
+                minWidth: '80px',
                 textAlign: 'right',
               }}
             >
@@ -276,6 +360,7 @@ export function ActionPanel() {
                       style={presetBtnStyle}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                      aria-label={`Set bet to ${label}`}
                     >
                       {label}
                     </button>
@@ -288,14 +373,25 @@ export function ActionPanel() {
                       style={presetBtnStyle}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                      aria-label="Bet half pot"
                     >
                       1/2
+                    </button>
+                    <button
+                      onClick={() => setRaiseAmount(clampChips(Math.floor((pot * 3) / 4)))}
+                      style={presetBtnStyle}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                      aria-label="Bet three-quarter pot"
+                    >
+                      3/4
                     </button>
                     <button
                       onClick={() => setRaiseAmount(clampChips(pot))}
                       style={presetBtnStyle}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                      aria-label="Bet full pot"
                     >
                       Pot
                     </button>
@@ -310,6 +406,7 @@ export function ActionPanel() {
                     style={presetBtnStyle}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                    aria-label="Bet half pot"
                   >
                     1/2
                   </button>
@@ -318,6 +415,7 @@ export function ActionPanel() {
                     style={presetBtnStyle}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                    aria-label="Bet three-quarter pot"
                   >
                     3/4
                   </button>
@@ -326,6 +424,7 @@ export function ActionPanel() {
                     style={presetBtnStyle}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#21262d')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = '#1c2230')}
+                    aria-label="Bet full pot"
                   >
                     Pot
                   </button>
