@@ -164,9 +164,13 @@ export const useGameStore = create<GameStore>()(
               const eventsSnapshot = [...draft._currentHandEvents];
               draft._currentHandEvents = [];
               // Fire-and-forget async saves (outside immer draft)
-              void Promise.resolve().then(() => {
-                void get().saveHandToHistory(eventsSnapshot, {});
-                void get().saveSessionSnapshot();
+              void Promise.resolve().then(async () => {
+                try {
+                  await get().saveHandToHistory(eventsSnapshot, {});
+                  await get().saveSessionSnapshot();
+                } catch (err) {
+                  console.warn('[GameStore] Failed to save hand/session:', err);
+                }
               });
             }
 
@@ -290,7 +294,11 @@ export const useGameStore = create<GameStore>()(
         ...metadata,
       };
 
-      await saveHand(hand);
+      // Deep-clone via JSON to ensure IndexedDB structured cloning compatibility.
+      // Immer drafts or non-cloneable references in events/state can cause DataCloneError.
+      const sanitizedHand = JSON.parse(JSON.stringify(hand));
+
+      await saveHand(sanitizedHand);
     },
 
     saveSessionSnapshot: async () => {
