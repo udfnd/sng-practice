@@ -270,85 +270,94 @@ input[type='range']::-moz-range-thumb {
 }
 
 /* ─── Responsive TopBar height ─────────────────────────────────────── */
-/* Mobile portrait: 48px, landscape: 50px, tablet: 55px, desktop: 60px */
 .topbar-responsive {
-  height: 48px;
+  height: 42px;
 }
 @media (min-width: 640px) {
-  .topbar-responsive { height: 50px; }
+  .topbar-responsive { height: 48px; }
 }
 @media (min-width: 768px) {
-  .topbar-responsive { height: 55px; }
+  .topbar-responsive { height: 52px; }
 }
 @media (min-width: 1024px) {
-  .topbar-responsive { height: 60px; }
+  .topbar-responsive { height: 56px; }
 }
 
 /* ─── Responsive TableArea outer padding ────────────────────────────── */
-/* Reduce padding on mobile so the table takes more available space.
-   Mobile portrait: 40px 40px, landscape: 44px 60px, tablet: 52px 72px, desktop: 56px 80px */
+/* Minimal padding on mobile to maximize table space */
 .tablearea-outer {
-  padding: 40px 40px;
+  padding: 28px 8px;
+}
+@media (min-width: 400px) {
+  .tablearea-outer { padding: 32px 16px; }
 }
 @media (min-width: 640px) {
-  .tablearea-outer { padding: 44px 60px; }
+  .tablearea-outer { padding: 40px 40px; }
 }
 @media (min-width: 768px) {
-  .tablearea-outer { padding: 52px 72px; }
+  .tablearea-outer { padding: 48px 60px; }
 }
 @media (min-width: 1024px) {
   .tablearea-outer { padding: 56px 80px; }
 }
 
 /* ─── Community card placeholder — matches PlayingCard size per breakpoint ── */
-/* Mobile (xs-card): 32x45px, landscape: 48x67px, tablet+: 64x90px */
 .community-card-placeholder {
-  width: 32px;
-  height: 45px;
+  width: 26px;
+  height: 36px;
+}
+@media (min-width: 400px) {
+  .community-card-placeholder { width: 30px; height: 42px; }
 }
 @media (min-width: 640px) {
-  .community-card-placeholder { width: 48px; height: 67px; }
+  .community-card-placeholder { width: 44px; height: 62px; }
 }
 @media (min-width: 768px) {
-  .community-card-placeholder { width: 64px; height: 90px; }
+  .community-card-placeholder { width: 56px; height: 78px; }
 }
 
 /* ─── PlayingCard responsive community card wrapper ────────────────── */
-/* Allow community card SVGs to scale up with breakpoints */
 .community-card svg {
-  width: 32px;
-  height: 45px;
+  width: 26px;
+  height: 36px;
+}
+@media (min-width: 400px) {
+  .community-card svg { width: 30px; height: 42px; }
 }
 @media (min-width: 640px) {
-  .community-card svg { width: 48px; height: 67px; }
+  .community-card svg { width: 44px; height: 62px; }
 }
 @media (min-width: 768px) {
-  .community-card svg { width: 64px; height: 90px; }
+  .community-card svg { width: 56px; height: 78px; }
 }
 
 /* ─── PlayerSeat hole card sizes per breakpoint ─────────────────────── */
-/* Hole cards are smaller than community cards since they're on seats */
 .seat-hole-card svg {
-  width: 28px;
-  height: 39px;
+  width: 22px;
+  height: 31px;
+}
+@media (min-width: 400px) {
+  .seat-hole-card svg { width: 26px; height: 36px; }
 }
 @media (min-width: 640px) {
-  .seat-hole-card svg { width: 40px; height: 56px; }
+  .seat-hole-card svg { width: 36px; height: 50px; }
 }
 @media (min-width: 768px) {
-  .seat-hole-card svg { width: 48px; height: 67px; }
+  .seat-hole-card svg { width: 44px; height: 62px; }
 }
 @media (min-width: 1024px) {
   .seat-hole-card svg { width: 48px; height: 67px; }
 }
 
 /* ─── PlayerSeat badge min-width per breakpoint ──────────────────────── */
-/* Mobile: 80px, desktop: 110px */
 .player-seat-badge {
-  min-width: 80px;
+  min-width: 56px;
+}
+@media (min-width: 400px) {
+  .player-seat-badge { min-width: 64px; }
 }
 @media (min-width: 640px) {
-  .player-seat-badge { min-width: 90px; }
+  .player-seat-badge { min-width: 84px; }
 }
 @media (min-width: 768px) {
   .player-seat-badge { min-width: 100px; }
@@ -358,10 +367,13 @@ input[type='range']::-moz-range-thumb {
 }
 
 .player-seat-badge-hero {
-  min-width: 88px;
+  min-width: 64px;
+}
+@media (min-width: 400px) {
+  .player-seat-badge-hero { min-width: 72px; }
 }
 @media (min-width: 640px) {
-  .player-seat-badge-hero { min-width: 100px; }
+  .player-seat-badge-hero { min-width: 96px; }
 }
 @media (min-width: 768px) {
   .player-seat-badge-hero { min-width: 112px; }
@@ -371,16 +383,27 @@ input[type='range']::-moz-range-thumb {
 }
 
 /* ─── Font sizes for player seat per breakpoint ──────────────────────── */
-/* Mobile: 10px name / 11px stack, Desktop: 12px name / 13px stack */
 .seat-name-text {
-  font-size: 10px;
+  font-size: 8px;
+}
+@media (min-width: 400px) {
+  .seat-name-text { font-size: 9px; }
+}
+@media (min-width: 640px) {
+  .seat-name-text { font-size: 10px; }
 }
 @media (min-width: 768px) {
   .seat-name-text { font-size: 12px; }
 }
 
 .seat-stack-text {
-  font-size: 11px;
+  font-size: 9px;
+}
+@media (min-width: 400px) {
+  .seat-stack-text { font-size: 10px; }
+}
+@media (min-width: 640px) {
+  .seat-stack-text { font-size: 11px; }
 }
 @media (min-width: 768px) {
   .seat-stack-text { font-size: 13px; }

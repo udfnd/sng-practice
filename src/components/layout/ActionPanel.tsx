@@ -60,8 +60,8 @@ function ensureSliderStyles() {
       box-shadow: 0 0 0 4px rgba(234,179,8,0.4), 0 2px 8px rgba(0,0,0,0.3);
     }
     .ap-bet-input {
-      width: 90px;
-      height: 36px;
+      width: 72px;
+      height: 34px;
       padding: 0 10px;
       border-radius: var(--radius-md);
       border: 1px solid rgba(234,179,8,0.3);
@@ -237,23 +237,23 @@ export function ActionPanel() {
     { label: '3 BB', bb: 3 },
   ];
 
-  // Glass button base styles
+  // Glass button base styles — responsive sizes
   const btnStyle: React.CSSProperties = {
-    height: '48px',
-    minWidth: '88px',
-    padding: '0 18px',
+    height: '44px',
+    minWidth: '64px',
+    padding: '0 12px',
     borderRadius: 'var(--radius-md)',
     fontWeight: 700,
-    fontSize: '14px',
+    fontSize: '13px',
     cursor: 'pointer',
     border: '1px solid rgba(255,255,255,0.1)',
     transition: 'filter 0.1s ease, transform 0.1s ease, box-shadow 0.15s ease',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '6px',
+    gap: '4px',
     whiteSpace: 'nowrap',
-    flexShrink: 0,
+    flexShrink: 1,
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
   };
@@ -329,7 +329,7 @@ export function ActionPanel() {
         flexDirection: 'column',
         justifyContent: 'center',
         gap: '8px',
-        padding: '8px 16px 8px',
+        padding: '6px 8px 6px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
         boxSizing: 'border-box',

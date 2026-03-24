@@ -199,7 +199,7 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
             style={{
               position: 'relative',
               width: '100%',
-              maxWidth: '440px',
+              maxWidth: 'min(440px, calc(100vw - 32px))',
               margin: '16px',
               background: '#141b24',
               border: '1px solid #334155',
@@ -372,7 +372,7 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
         </div>
       )}
 
-      {/* Mobile responsive — keep only layout overrides here, animations are in globals.css */}
+      {/* Mobile responsive overrides */}
       <style>{`
         @media (max-width: 768px) {
           div[style*="width: 420px"] {
@@ -382,6 +382,17 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
           }
           div[style*="flex: 1"][style*="overflow: hidden"] {
             display: none !important;
+          }
+        }
+        @media (max-width: 400px) {
+          div[style*="width: 420px"] {
+            padding: 24px 16px !important;
+          }
+          div[style*="marginBottom: '48px'"] {
+            margin-bottom: 24px !important;
+          }
+          div[style*="fontSize: '36px'"] {
+            font-size: 28px !important;
           }
         }
       `}</style>

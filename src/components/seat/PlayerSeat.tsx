@@ -119,7 +119,7 @@ export const PlayerSeat = memo(function PlayerSeat({
     WebkitBackdropFilter: player.isFolded ? 'none' : 'blur(var(--glass-blur))',
     border: `1.5px solid ${borderColor}`,
     borderRadius: 'var(--radius-lg)',
-    padding: isHero ? '8px 10px' : '6px 8px',
+    padding: isHero ? '4px 6px' : '3px 5px',
     position: 'relative',
     boxShadow,
     transition: 'border-color 0.2s ease, box-shadow 0.2s ease, filter 0.3s ease, opacity 0.3s ease',
@@ -199,20 +199,20 @@ export const PlayerSeat = memo(function PlayerSeat({
           </div>
         )}
 
-        {/* Name row — centered */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%' }}>
+        {/* Name — centered, avatar hidden on small screens */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', width: '100%' }}>
           <div
+            className="hidden sm:flex"
             style={{
-              width: '20px',
-              height: '20px',
+              width: '16px',
+              height: '16px',
               borderRadius: '50%',
               background: player.isHuman
                 ? 'linear-gradient(135deg, #2563eb, #1d4ed8)'
                 : 'linear-gradient(135deg, #374151, #1f2937)',
               color: '#fff',
-              fontSize: '9px',
+              fontSize: '8px',
               fontWeight: 700,
-              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
@@ -228,7 +228,7 @@ export const PlayerSeat = memo(function PlayerSeat({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              maxWidth: '68px',
+              maxWidth: '52px',
             }}
           >
             {player.name}

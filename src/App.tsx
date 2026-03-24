@@ -175,7 +175,7 @@ export function App() {
             <TableArea />
           </div>
           {/* Action panel — min-height so table position is stable; grows for safe area */}
-          <div style={{ minHeight: '120px', flexShrink: 0 }}>
+          <div style={{ minHeight: '100px', flexShrink: 0 }}>
             <ActionPanel />
           </div>
         </main>
