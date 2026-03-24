@@ -25,7 +25,7 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
   const [payoutStructure, setPayoutStructure] = useState<'top2' | 'top3'>('top3');
   const [aiPresets, setAiPresets] = useState<PresetType[]>(DEFAULT_PRESETS);
   const [customSeed, setCustomSeed] = useState('');
-  const [noLimp, setNoLimp] = useState(false);
+  const [noLimp, setNoLimp] = useState(true);
 
   const handleStart = () => {
     onStart({ startingChips, blindSpeed, payoutStructure, aiPresets, customSeed, noLimp });
