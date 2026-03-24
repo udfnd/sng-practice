@@ -31,6 +31,7 @@ coverage/
 .moai/cache/
 .moai/logs/
 .moai/state/
+.moai-backups/
 
 # Claude Code
 .claude/settings.local.json
