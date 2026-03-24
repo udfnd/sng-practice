@@ -586,7 +586,7 @@ async function runShowdown(
     // Empty eligible set = upstream bug in pot calculation. Fail fast.
     if (sidePotEligible.length === 0) {
       throw new Error(
-        `Side pot ${potIndex} has no eligible players at showdown. ` +
+        `Side pot ${sidePotIndex} has no eligible players at showdown. ` +
         `Eligible IDs: [${sidePot.eligiblePlayerIds.join(',')}], ` +
         `Reveal IDs: [${reveals.map((r) => r.playerId).join(',')}]`
       );
