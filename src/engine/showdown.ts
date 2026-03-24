@@ -15,52 +15,64 @@ export interface ShowdownResult {
 }
 
 /**
+ * Evaluate hands for all eligible (non-folded, active) players.
+ * This is the pure evaluation step — no ordering logic.
+ */
+function evaluateHands(
+  players: Player[],
+  communityCards: Card[],
+): ShowdownReveal[] {
+  const eligible = players.filter((p) => p.isActive && !p.isFolded && p.holeCards);
+  return eligible.map((p) => {
+    const allCards = [...p.holeCards!, ...communityCards];
+    const hand = evaluate7(allCards);
+    return { playerId: p.id, cards: p.holeCards!, hand };
+  });
+}
+
+/**
  * Determine showdown reveal order per TDA rules.
  *
- * 1. All-in players: revealed immediately
- * 2. Last aggressor reveals first
- * 3. If no aggressor (check-through): first-to-act reveals first
- * 4. AI always shows (learning UX exception)
+ * Two distinct modes:
+ * 1. All-in showdown: all live hands are tabled simultaneously (no ordering needed for rules,
+ *    but we sort all-in players first for consistent UI presentation)
+ * 2. Non-all-in showdown: last aggressor first, then clockwise from button
+ *
+ * @param players All players in the hand
+ * @param communityCards Board cards
+ * @param lastAggressorId Last player who bet/raised on the final street (null if checked through)
+ * @param actionOrderIds Player IDs in clockwise action order from button
  */
-// @MX:WARN @MX:REASON="3-level sort: all-in > aggressor > action order" | TDA-compliant reveal ordering
 export function getShowdownOrder(
   players: Player[],
   communityCards: Card[],
   lastAggressorId: string | null,
   actionOrderIds: string[],
 ): ShowdownReveal[] {
-  const eligible = players.filter((p) => p.isActive && !p.isFolded && p.holeCards);
+  const reveals = evaluateHands(players, communityCards);
+  if (reveals.length === 0) return reveals;
 
-  const reveals: ShowdownReveal[] = [];
+  // Determine if this is an all-in showdown
+  const nonFolded = players.filter((p) => p.isActive && !p.isFolded);
+  const isAllInShowdown = nonFolded.some((p) => p.isAllIn);
 
-  // Evaluate each player's hand
-  for (const p of eligible) {
-    const allCards = [...p.holeCards!, ...communityCards];
-    const hand = evaluate7(allCards);
-    reveals.push({
-      playerId: p.id,
-      cards: p.holeCards!,
-      hand,
+  if (isAllInShowdown) {
+    // All-in showdown: all hands are tabled (TDA). Sort all-in first for UI consistency.
+    reveals.sort((a, b) => {
+      const aAllIn = players.find((p) => p.id === a.playerId)!.isAllIn;
+      const bAllIn = players.find((p) => p.id === b.playerId)!.isAllIn;
+      if (aAllIn && !bAllIn) return -1;
+      if (!aAllIn && bAllIn) return 1;
+      return actionOrderIds.indexOf(a.playerId) - actionOrderIds.indexOf(b.playerId);
+    });
+  } else {
+    // Non-all-in showdown: last aggressor first, then clockwise from button
+    reveals.sort((a, b) => {
+      if (a.playerId === lastAggressorId) return -1;
+      if (b.playerId === lastAggressorId) return 1;
+      return actionOrderIds.indexOf(a.playerId) - actionOrderIds.indexOf(b.playerId);
     });
   }
-
-  // Sort by reveal order
-  reveals.sort((a, b) => {
-    // All-in players first
-    const aAllIn = players.find((p) => p.id === a.playerId)!.isAllIn;
-    const bAllIn = players.find((p) => p.id === b.playerId)!.isAllIn;
-    if (aAllIn && !bAllIn) return -1;
-    if (!aAllIn && bAllIn) return 1;
-
-    // Last aggressor next
-    if (a.playerId === lastAggressorId) return -1;
-    if (b.playerId === lastAggressorId) return 1;
-
-    // Otherwise by action order (first to act first)
-    const aIdx = actionOrderIds.indexOf(a.playerId);
-    const bIdx = actionOrderIds.indexOf(b.playerId);
-    return aIdx - bIdx;
-  });
 
   return reveals;
 }
