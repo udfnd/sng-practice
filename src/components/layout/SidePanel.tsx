@@ -42,7 +42,7 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
   const panelContent = (
     <div className="flex flex-col h-full">
       {/* Action Log header */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #30363d', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <h3 style={{ fontSize: '11px', fontWeight: 600, color: '#6e7681', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
           Action Log
         </h3>
@@ -89,7 +89,7 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
       {/* Player Stats */}
       {players.length > 0 && (
         <>
-          <div style={{ padding: '8px 12px', borderTop: '1px solid #30363d', flexShrink: 0 }}>
+          <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
             <h3 style={{ fontSize: '11px', fontWeight: 600, color: '#6e7681', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
               Stats
             </h3>
@@ -97,7 +97,7 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
           <div style={{ padding: '0 8px 8px', overflowY: 'auto', flexShrink: 0 }}>
             <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ color: '#6e7681', borderBottom: '1px solid #30363d' }}>
+                <tr style={{ color: '#6e7681', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <th style={{ textAlign: 'left', padding: '3px 4px', fontWeight: 500 }}>Player</th>
                   <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 500 }}>VPIP</th>
                   <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 500 }}>PFR</th>
@@ -108,7 +108,7 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
                 {players
                   .filter((p) => p.isActive)
                   .map((p) => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(48,54,61,0.5)' }}>
+                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                       <td
                         style={{
                           padding: '3px 4px',
@@ -138,8 +138,8 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
     <>
       {/* Desktop sidebar: always visible on lg+ */}
       <aside
-        className="hidden lg:flex flex-col"
-        style={{ width: '240px', background: '#161b22', borderLeft: '1px solid #30363d', overflow: 'hidden' }}
+        className="hidden lg:flex flex-col glass-panel-heavy"
+        style={{ width: '240px', borderLeft: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}
       >
         {panelContent}
       </aside>
@@ -154,8 +154,8 @@ export function SidePanel({ mobileOpen = false, onClose }: SidePanelProps) {
             aria-hidden="true"
           />
           <div
-            className="lg:hidden fixed right-0 top-0 bottom-0 z-50 slide-in-right flex flex-col"
-            style={{ width: '240px', background: '#161b22', borderLeft: '1px solid #30363d' }}
+            className="lg:hidden fixed right-0 top-0 bottom-0 z-50 slide-in-right flex flex-col glass-panel-heavy"
+            style={{ width: '240px', borderLeft: '1px solid rgba(255,255,255,0.06)' }}
           >
             {panelContent}
           </div>

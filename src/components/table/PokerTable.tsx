@@ -31,14 +31,20 @@ export const PokerTable = memo(function PokerTable({
 }: PokerTableProps) {
   const displayMode = useGameStore((s) => s.displayMode);
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
+  const blindLevel = useGameStore((s) => s.gameState?.blindLevel);
 
   const communityCardDescriptions = communityCards.length > 0
     ? communityCards.map(describeCard).join(', ')
     : 'none';
 
+  const level = blindLevel?.level ?? 1;
+  const sb = blindLevel?.sb ?? 10;
+  const bbVal = blindLevel?.bb ?? 20;
+  const ante = blindLevel?.ante ?? 0;
+
   return (
     <div className="w-full h-full relative">
-      {/* Outer rail (wooden border) — fills parent, ellipse shape */}
+      {/* Outer rail (wooden border) */}
       <div
         className="absolute inset-0 rounded-[50%]"
         style={{
@@ -55,10 +61,10 @@ export const PokerTable = memo(function PokerTable({
           background: 'radial-gradient(ellipse at 40% 35%, #2d6a3f 0%, #1a5c2a 45%, #0f3d1a 100%)',
           boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.5), inset 0 -2px 10px rgba(0,0,0,0.4)',
           border: '2px solid rgba(0,0,0,0.4)',
-          gap: '10px',
+          gap: '8px',
         }}
       >
-        {/* Subtle felt texture highlight */}
+        {/* Felt texture highlight */}
         <div
           className="absolute inset-0 rounded-[50%] pointer-events-none"
           style={{
@@ -66,7 +72,43 @@ export const PokerTable = memo(function PokerTable({
           }}
         />
 
-        {/* Community Cards — size adapts to viewport per SPEC-UI-006 */}
+        {/* Blind level info — displayed on the felt */}
+        <div
+          className="relative z-10"
+          aria-label={`Blind level ${level}: ${sb}/${bbVal}${ante ? ` ante ${ante}` : ''}`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '3px 12px',
+            borderRadius: 'var(--radius-full)',
+            background: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <span style={{ color: 'rgba(251,191,36,0.8)', fontWeight: 700, fontSize: '11px' }}>
+            Lv.{level}
+          </span>
+          <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {sb}
+          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>/</span>
+          <span style={{ color: '#60a5fa', fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            {bbVal}
+          </span>
+          {ante > 0 && (
+            <>
+              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '10px' }}>|</span>
+              <span style={{ color: '#fb923c', fontSize: '11px', fontWeight: 600 }}>
+                A {ante}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Community Cards */}
         <div
           className="flex gap-1 sm:gap-2 relative z-10"
           style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))' }}
@@ -86,6 +128,7 @@ export const PokerTable = memo(function PokerTable({
                   border: '1px solid rgba(255,255,255,0.06)',
                   background: 'rgba(0,0,0,0.18)',
                   boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.4)',
+                  borderRadius: 'var(--radius-sm)',
                 }}
                 aria-hidden="true"
               />
@@ -98,14 +141,17 @@ export const PokerTable = memo(function PokerTable({
           role="status"
           aria-label={`Pot: ${formatAmount(potAmount, bb, displayMode)}`}
           aria-live="polite"
-          className="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full transition-all duration-300"
+          className="relative z-10 flex items-center gap-2 px-4 py-1.5 transition-all duration-300"
           style={{
             opacity: potAmount > 0 ? 1 : 0,
             transform: potAmount > 0 ? 'scale(1)' : 'scale(0.92)',
             pointerEvents: potAmount > 0 ? 'auto' : 'none',
-            background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.55) 100%)',
-            border: '1px solid rgba(251,191,36,0.35)',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(251,191,36,0.3)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            borderRadius: 'var(--radius-full)',
           }}
         >
           <span style={{ color: '#fbbf24', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>POT</span>

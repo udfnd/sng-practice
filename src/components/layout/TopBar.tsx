@@ -6,7 +6,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
-  const blindLevel = useGameStore((s) => s.gameState?.blindLevel);
   const handNumber = useGameStore((s) => s.gameState?.handNumber ?? 0);
   const activePlayers = useGameStore(
     (s) => s.gameState?.players.filter((p) => p.isActive).length ?? 0
@@ -18,63 +17,38 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
     <header
       role="banner"
       aria-label="Game status"
-      className="topbar-responsive"
+      className="topbar-responsive glass-panel-heavy"
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 14px',
-        background: '#161b22',
-        borderBottom: '1px solid #30363d',
+        padding: '0 16px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
+        borderRadius: 0,
       }}
     >
-      {/* Left: blind level info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div
-          aria-label={`Blind level ${blindLevel?.level ?? 1}: ${blindLevel?.sb ?? 10}/${blindLevel?.bb ?? 20}${blindLevel?.ante ? ` ante ${blindLevel.ante}` : ''}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '2px 8px',
-            borderRadius: '5px',
-            background: 'rgba(251,191,36,0.1)',
-            border: '1px solid rgba(251,191,36,0.22)',
-          }}
-        >
-          <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '12px' }}>
-            Lv.{blindLevel?.level ?? 1}
-          </span>
-          <span style={{ color: '#8b949e', fontSize: '12px', fontWeight: 500 }}>
-            {blindLevel?.sb ?? 10}/{blindLevel?.bb ?? 20}
-          </span>
-          {blindLevel?.ante ? (
-            <span style={{ color: '#fb923c', fontSize: '12px' }}>· Ante {blindLevel.ante}</span>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Center: hand number */}
+      {/* Left: hand number */}
       <span
         aria-label={`Hand number ${handNumber}`}
-        style={{ color: '#6e7681', fontSize: '12px', fontWeight: 500 }}
+        style={{ color: '#8b949e', fontSize: '13px', fontWeight: 500 }}
       >
         Hand #{handNumber}
       </span>
 
-      {/* Right: players (tablet+) + display mode + mobile toggle */}
+      {/* Right: players + display mode + mobile toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span
           className="hidden sm:inline"
           aria-label={`${activePlayers} active players`}
           style={{
             fontSize: '12px',
-            fontWeight: 500,
+            fontWeight: 600,
             color: '#8b949e',
-            padding: '2px 8px',
-            borderRadius: '99px',
+            padding: '3px 10px',
+            borderRadius: 'var(--radius-full)',
             background: 'rgba(110,118,129,0.12)',
+            border: '1px solid rgba(110,118,129,0.15)',
           }}
         >
           {activePlayers}p
@@ -83,21 +57,21 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
         <button
           onClick={toggleDisplayMode}
           style={{
-            height: '26px',
-            minWidth: '36px',
-            padding: '0 8px',
-            borderRadius: '5px',
-            fontSize: '11px',
-            fontWeight: 600,
+            height: '28px',
+            minWidth: '38px',
+            padding: '0 10px',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '12px',
+            fontWeight: 700,
             cursor: 'pointer',
-            border: 'none',
-            transition: 'background 0.1s',
-            background: displayMode === 'bb' ? '#fbbf24' : '#21262d',
-            color: displayMode === 'bb' ? '#000' : '#8b949e',
+            border: '1px solid rgba(255,255,255,0.08)',
+            transition: 'background 0.15s, transform 0.1s',
+            background: displayMode === 'bb' ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.06)',
+            color: displayMode === 'bb' ? '#fbbf24' : '#8b949e',
           }}
           aria-label="Toggle big blind display"
           aria-pressed={displayMode === 'bb'}
-          title={displayMode === 'bb' ? 'Showing amounts in BB — click to switch to chips' : 'Showing amounts in chips — click to switch to BB'}
+          title={displayMode === 'bb' ? 'Showing amounts in BB' : 'Showing amounts in chips'}
         >
           {displayMode === 'bb' ? 'BB' : '$'}
         </button>
@@ -107,11 +81,11 @@ export function TopBar({ onToggleSidePanel, sidePanelOpen }: TopBarProps) {
             onClick={onToggleSidePanel}
             className="lg:hidden"
             style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '5px',
-              background: '#21262d',
-              border: '1px solid #30363d',
+              width: '30px',
+              height: '30px',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -51,6 +51,8 @@ interface GameStore {
   hasResumableSession: boolean;
   /** Resumable tournament state (null if none) */
   resumableState: TournamentState | null;
+  /** Player IDs who won the pot in the most recent showdown */
+  showdownWinners: string[];
   /** Accumulated events for the current hand */
   _currentHandEvents: GameEvent[];
 
@@ -108,6 +110,7 @@ const initialState = {
   humanPlayerId: null,
   hasResumableSession: false,
   resumableState: null as TournamentState | null,
+  showdownWinners: [] as string[],
   _currentHandEvents: [] as GameEvent[],
   displayMode: loadDisplayMode() as DisplayMode,
 };
@@ -209,6 +212,24 @@ export const useGameStore = create<GameStore>()(
               if (draft.actionLog.length > 200) {
                 draft.actionLog = draft.actionLog.slice(-100);
               }
+            }
+
+            // Track pot winners for UI display
+            if (event.type === 'AWARD_POT') {
+              const payload = event.payload;
+              if (payload.type === 'AWARD_POT') {
+                const winnerIds = payload.payouts.map((pw) => pw.playerId);
+                for (const wid of winnerIds) {
+                  if (!draft.showdownWinners.includes(wid)) {
+                    draft.showdownWinners.push(wid);
+                  }
+                }
+              }
+            }
+
+            // Clear winners when new hand starts
+            if (event.type === 'HAND_START') {
+              draft.showdownWinners = [];
             }
 
             // Handle tournament end

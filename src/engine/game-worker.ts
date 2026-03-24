@@ -51,8 +51,7 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
   // Build player names: human is seat 0, AI seats 1-7
   const playerNames: string[] = ['Hero'];
   for (let i = 1; i < 8; i++) {
-    const presetType = (aiProfiles[`p${i}`] ?? 'TAG') as PresetType;
-    playerNames.push(`${presetType} ${i}`);
+    playerNames.push(`Player ${i}`);
   }
 
   // Create tournament
@@ -147,6 +146,7 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     // Flush at meaningful checkpoints
     const isCheckpoint =
       event.type === 'AWARD_POT' ||
+      event.type === 'SHOWDOWN' ||
       event.type === 'PLAYER_ELIMINATED' ||
       event.type === 'BLIND_LEVEL_UP' ||
       event.type === 'TOURNAMENT_END' ||
@@ -157,9 +157,17 @@ async function handleStartGame(msg: StartGameMessage): Promise<void> {
     }
   };
 
+  // Hand complete delay: pause after each hand so users can see showdown results
+  const HAND_COMPLETE_DELAY_MS = 2000;
+  const onHandComplete = async (): Promise<void> => {
+    flushPendingEvents();
+    postStateUpdate(tournament.gameState, true);
+    await new Promise<void>((resolve) => setTimeout(resolve, HAND_COMPLETE_DELAY_MS));
+  };
+
   try {
     console.log('[Worker] Starting runTournament...');
-    await runTournament(tournament, actionProvider, onEvent, onBeforeAIAction, onRunoutStreetDealt);
+    await runTournament(tournament, actionProvider, onEvent, onBeforeAIAction, onRunoutStreetDealt, onHandComplete);
 
     // Flush remaining events and send final state.
     // NOTE: runTournament already emits TOURNAMENT_END via onEvent, which is

@@ -96,6 +96,12 @@ export type OnBeforeAIAction = (playerId: string) => Promise<void>;
 export type OnRunoutStreetDealt = (street: Street) => Promise<void>;
 
 /**
+ * Optional async callback invoked after a hand is complete (showdown + awards done).
+ * Allows the caller (e.g., Web Worker) to add a visual delay so users can see results.
+ */
+export type OnHandComplete = () => Promise<void>;
+
+/**
  * Run a single hand from the current tournament state.
  * Mutates tournament.gameState in place.
  *
@@ -512,6 +518,7 @@ async function runShowdown(
         playerId: r.playerId,
         cards: r.cards,
         handRank: r.hand.rank,
+        handDescription: r.hand.description,
       })),
     ),
   );
@@ -602,6 +609,7 @@ export async function runTournament(
   onEvent: (event: GameEvent) => void,
   onBeforeAIAction?: OnBeforeAIAction,
   onRunoutStreetDealt?: OnRunoutStreetDealt,
+  onHandComplete?: OnHandComplete,
 ): Promise<Standing[]> {
   const maxHands = 500; // Safety limit (typical SNG: 60-120 hands)
   let handsPlayed = 0;
@@ -622,6 +630,11 @@ export async function runTournament(
     // Emit all events
     for (const event of handEvents) {
       onEvent(event);
+    }
+
+    // Pause after hand complete so users can see showdown results
+    if (onHandComplete) {
+      await onHandComplete();
     }
 
     // Process eliminations (players with 0 chips)

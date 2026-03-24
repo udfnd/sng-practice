@@ -108,12 +108,41 @@ export function formatEvent(
       return `=== Tournament Complete ===`;
     }
 
-    case 'SHOWDOWN':
-      return `--- Showdown ---`;
+    case 'SHOWDOWN': {
+      if (p.reveals.length === 0) return `--- Showdown ---`;
+      const lines: string[] = ['--- Showdown ---'];
+      for (const r of p.reveals) {
+        const name = getPlayerLabel(r.playerId, playerNames);
+        const cards = r.cards.map(formatCard).join(' ');
+        const desc = r.handDescription || getHandRankName(r.handRank);
+        lines.push(`  ${name}: [${cards}] ${desc}`);
+      }
+      return lines.join('\n');
+    }
 
     default:
       return null;
   }
+}
+
+/**
+ * Convert a numeric hand rank to a human-readable name.
+ * Hand ranks: 1=Royal Flush .. 10=High Card (lower = better)
+ */
+function getHandRankName(rank: number): string {
+  const names: Record<number, string> = {
+    1: 'Royal Flush',
+    2: 'Straight Flush',
+    3: 'Four of a Kind',
+    4: 'Full House',
+    5: 'Flush',
+    6: 'Straight',
+    7: 'Three of a Kind',
+    8: 'Two Pair',
+    9: 'One Pair',
+    10: 'High Card',
+  };
+  return names[rank] ?? `Rank ${rank}`;
 }
 
 /**

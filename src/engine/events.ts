@@ -124,7 +124,7 @@ export function uncalledReturnEvent(
 
 export function showdownEvent(
   handNumber: number,
-  reveals: { playerId: string; cards: [Card, Card]; handRank: number }[],
+  reveals: { playerId: string; cards: [Card, Card]; handRank: number; handDescription: string }[],
 ): GameEvent {
   return createEvent('SHOWDOWN', handNumber, {
     type: 'SHOWDOWN',

@@ -295,7 +295,7 @@ export interface UncalledReturnPayload {
 
 export interface ShowdownPayload {
   type: 'SHOWDOWN';
-  reveals: { playerId: string; cards: [Card, Card]; handRank: number }[];
+  reveals: { playerId: string; cards: [Card, Card]; handRank: number; handDescription: string }[];
 }
 
 export interface AwardPotPayload {

@@ -7,20 +7,24 @@ import { PlayerSeat } from '@/components/seat/PlayerSeat';
  * The table felt fills the entire container, and seats are placed
  * at positions along the elliptical rim using degree-based positioning.
  *
+ * Counter-clockwise layout (standard poker viewing convention):
+ * Seats increase to the LEFT (counter-clockwise) from hero's perspective.
+ * Action flows clockwise (left of BB first), but visually seats go CCW.
+ *
  * Degree system (0°=right, 90°=top, 180°=left, 270°=bottom):
  *   Seat 0 (human): 270° — bottom center
- *   Seat 1: 315° — bottom-right
- *   Seat 2:   0° — right
- *   Seat 3:  45° — top-right
+ *   Seat 1: 225° — bottom-left (to hero's left)
+ *   Seat 2: 180° — left
+ *   Seat 3: 135° — top-left
  *   Seat 4:  90° — top center
- *   Seat 5: 135° — top-left
- *   Seat 6: 180° — left
- *   Seat 7: 225° — bottom-left
+ *   Seat 5:  45° — top-right
+ *   Seat 6:   0° — right
+ *   Seat 7: 315° — bottom-right (to hero's right)
  *
  *            [S4]
- *       [S5]      [S3]
- *     [S6]          [S2]
- *       [S7]      [S1]
+ *       [S3]      [S5]
+ *     [S2]          [S6]
+ *       [S1]      [S7]
  *            [S0]  (hero)
  */
 
@@ -42,17 +46,17 @@ function degToPos(deg: number): { top: string; left: string } {
   return { left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%` };
 }
 
-// Seat degree positions per SPEC-UI-006.
-// Design convention: 0°=right, 90°=top-center, 180°=left, 270°=bottom-center.
+// Seat degree positions — counter-clockwise from hero.
+// Seats increase to the LEFT (counter-clockwise) from hero's perspective.
 //   Seat 0 (human): 270° — bottom center
-//   Seat 1: 315° — bottom-right
-//   Seat 2:   0° — right
-//   Seat 3:  45° — top-right
+//   Seat 1: 225° — bottom-left
+//   Seat 2: 180° — left
+//   Seat 3: 135° — top-left
 //   Seat 4:  90° — top center
-//   Seat 5: 135° — top-left
-//   Seat 6: 180° — left
-//   Seat 7: 225° — bottom-left
-const SEAT_DEGREES = [270, 315, 0, 45, 90, 135, 180, 225] as const;
+//   Seat 5:  45° — top-right
+//   Seat 6:   0° — right
+//   Seat 7: 315° — bottom-right
+const SEAT_DEGREES = [270, 225, 180, 135, 90, 45, 0, 315] as const;
 
 const SEAT_POSITIONS = SEAT_DEGREES.map(degToPos);
 

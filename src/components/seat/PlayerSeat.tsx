@@ -7,7 +7,7 @@ import { formatAmount } from '@/utils/format-chips';
 interface PlayerSeatProps {
   player: Player;
   isButton: boolean;
-  /** Whether this seat belongs to the human player — renders larger with blue highlight */
+  /** Whether this seat belongs to the human player */
   isHero?: boolean;
 }
 
@@ -23,9 +23,11 @@ export const PlayerSeat = memo(function PlayerSeat({
   const displayMode = useGameStore((s) => s.displayMode);
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
   const phase = useGameStore((s) => s.gameState?.phase);
+  const showdownWinners = useGameStore((s) => s.showdownWinners);
 
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
+  const isPotWinner = showdownWinners.includes(player.id);
 
   const positionBadge = isButton
     ? 'BTN'
@@ -35,7 +37,6 @@ export const PlayerSeat = memo(function PlayerSeat({
     ? 'BB'
     : null;
 
-  // CSS classes handle responsive width (see globals.css .player-seat-badge[-hero])
   const badgeClass = isHero ? 'player-seat-badge-hero' : 'player-seat-badge';
 
   if (!player.isActive) {
@@ -44,13 +45,13 @@ export const PlayerSeat = memo(function PlayerSeat({
         className={badgeClass}
         style={{
           minHeight: '36px',
-          borderRadius: '8px',
-          background: '#0d1117',
-          border: '1px solid #21262d',
+          borderRadius: 'var(--radius-lg)',
+          background: 'rgba(13,17,23,0.4)',
+          border: '1px solid rgba(255,255,255,0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: 0.25,
+          opacity: 0.2,
         }}
         aria-hidden="true"
       >
@@ -60,37 +61,51 @@ export const PlayerSeat = memo(function PlayerSeat({
   }
 
   // Border & glow state
-  let borderColor = isHero ? '#1e40af' : '#30363d';
-  let boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
-  let bgColor = isHero ? 'rgba(14,20,36,0.85)' : 'rgba(20,27,36,0.75)';
+  let borderColor = isHero ? 'rgba(30,64,175,0.6)' : 'rgba(255,255,255,0.08)';
+  let boxShadow = '0 4px 16px rgba(0,0,0,0.4)';
+  let bgColor = 'var(--glass-bg)';
 
   if (player.isFolded) {
-    bgColor = 'rgba(13,17,23,0.65)';
+    bgColor = 'rgba(13,17,23,0.5)';
+    borderColor = 'rgba(255,255,255,0.04)';
   } else if (player.isAllIn) {
-    bgColor = 'rgba(127,29,29,0.45)';
-    borderColor = '#ef4444';
-    boxShadow = '0 0 0 2px rgba(239,68,68,0.25), 0 2px 8px rgba(0,0,0,0.5)';
+    bgColor = 'rgba(127,29,29,0.35)';
+    borderColor = 'rgba(239,68,68,0.5)';
+    boxShadow = '0 0 0 2px rgba(239,68,68,0.2), 0 4px 16px rgba(0,0,0,0.4)';
   }
 
   if (isHumanActive) {
-    borderColor = '#58a6ff';
-    boxShadow = '0 0 0 3px rgba(88,166,255,0.3), 0 4px 12px rgba(0,0,0,0.5)';
+    borderColor = 'rgba(88,166,255,0.5)';
+    boxShadow = '0 0 0 3px rgba(88,166,255,0.25), 0 4px 16px rgba(0,0,0,0.4)';
   } else if (isThinking) {
-    borderColor = '#fbbf24';
-    boxShadow = '0 0 0 3px rgba(251,191,36,0.3), 0 4px 12px rgba(0,0,0,0.5)';
+    borderColor = 'rgba(251,191,36,0.5)';
+    boxShadow = '0 0 0 3px rgba(251,191,36,0.25), 0 4px 16px rgba(0,0,0,0.4)';
   }
 
   const animClass = isHumanActive
     ? 'active-player-glow'
     : isThinking
     ? 'active-player-glow-yellow'
+    : isPotWinner
+    ? 'pot-winner-glow'
     : '';
 
+  // Cards face-up rules:
+  // 1. Hero always sees their own cards
+  // 2. During SHOWDOWN or HAND_COMPLETE: all non-folded players' cards are revealed
+  // 3. During all-in runout (all remaining players are all-in, no more betting):
+  //    cards are revealed as community cards are dealt
+  // Note: a single all-in player does NOT have cards revealed if other players can still act.
   const isShowdownPhase = phase === 'SHOWDOWN' || phase === 'HAND_COMPLETE';
-  const isInHand = !player.isFolded;
+  const isAllInRunout = useGameStore((s) => {
+    const ps = s.gameState?.players;
+    if (!ps) return false;
+    const inHand = ps.filter((p) => p.isActive && !p.isFolded);
+    return inHand.length >= 2 && inHand.every((p) => p.isAllIn);
+  });
   const showFaceUp = player.isHuman
-    || (isShowdownPhase && isInHand)
-    || (player.isAllIn && isInHand);
+    || (isShowdownPhase && !player.isFolded)
+    || (isAllInRunout && !player.isFolded);
 
   const positionBadgeColor =
     positionBadge === 'BTN' ? '#d97706' :
@@ -99,14 +114,19 @@ export const PlayerSeat = memo(function PlayerSeat({
 
   const seatStyle: React.CSSProperties = {
     background: bgColor,
+    backdropFilter: player.isFolded ? 'none' : 'blur(var(--glass-blur))',
+    WebkitBackdropFilter: player.isFolded ? 'none' : 'blur(var(--glass-blur))',
     border: `1.5px solid ${borderColor}`,
-    borderRadius: '10px',
-    padding: isHero ? '6px 9px' : '5px 7px',
+    borderRadius: 'var(--radius-lg)',
+    padding: isHero ? '8px 10px' : '6px 8px',
     position: 'relative',
     boxShadow,
-    opacity: player.isFolded ? 0.42 : 1,
-    transition: 'border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease, filter 0.3s ease, opacity 0.3s ease',
+    textAlign: 'center',
   };
+
+  // Folded wrapper class
+  const foldedClass = player.isFolded ? 'player-folded' : '';
 
   const positionLabel = positionBadge ? `, ${positionBadge}` : '';
   const seatAriaLabel = player.isHuman
@@ -117,9 +137,10 @@ export const PlayerSeat = memo(function PlayerSeat({
     <div
       role="region"
       aria-label={seatAriaLabel}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}
+      className={foldedClass}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}
     >
-      {/* Hole Cards — responsive size via CSS class on wrapper */}
+      {/* Hole Cards */}
       {player.holeCards && (
         <div className="seat-hole-card" style={{ display: 'flex', gap: '2px', filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))' }}>
           <PlayingCard card={player.holeCards[0]} size="xs" faceDown={!showFaceUp} animate animationDelay={0} />
@@ -134,7 +155,7 @@ export const PlayerSeat = memo(function PlayerSeat({
           <div
             style={{
               position: 'absolute',
-              top: '-9px',
+              top: '-10px',
               left: '50%',
               transform: 'translateX(-50%)',
               background: positionBadgeColor,
@@ -142,9 +163,9 @@ export const PlayerSeat = memo(function PlayerSeat({
               fontSize: '9px',
               fontWeight: 700,
               letterSpacing: '0.06em',
-              padding: '1px 5px',
-              borderRadius: '4px',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+              padding: '2px 7px',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -177,8 +198,8 @@ export const PlayerSeat = memo(function PlayerSeat({
           </div>
         )}
 
-        {/* Name row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%' }}>
+        {/* Name row — centered */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%' }}>
           <div
             style={{
               width: '20px',
@@ -213,35 +234,30 @@ export const PlayerSeat = memo(function PlayerSeat({
           </span>
         </div>
 
-        {/* Stack */}
-        <span
-          className="seat-stack-text"
-          style={{
-            fontWeight: 700,
-            color: '#fbbf24',
-            fontVariantNumeric: 'tabular-nums',
-            marginTop: '2px',
-            display: 'block',
-          }}
-        >
-          {formatAmount(player.chips, bb, displayMode)}
-        </span>
-
-        {/* Current bet badge */}
-        {player.currentBet > 0 && (
-          <div
+        {/* Stack — centered */}
+        <div style={{ textAlign: 'center', marginTop: '2px' }}>
+          <span
+            className="seat-stack-text"
             style={{
-              marginTop: '2px',
-              padding: '1px 7px',
-              borderRadius: '99px',
-              background: 'rgba(251,191,36,0.14)',
-              border: '1px solid rgba(251,191,36,0.38)',
-              display: 'inline-flex',
-              alignItems: 'center',
+              fontWeight: 700,
+              color: '#fbbf24',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
+            {formatAmount(player.chips, bb, displayMode)}
+          </span>
+        </div>
+
+        {/* Current bet badge — centered */}
+        {player.currentBet > 0 && (
+          <div style={{ textAlign: 'center', marginTop: '2px' }}>
             <span
               style={{
+                display: 'inline-block',
+                padding: '1px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'rgba(251,191,36,0.12)',
+                border: '1px solid rgba(251,191,36,0.3)',
                 fontSize: '12px',
                 fontWeight: 700,
                 color: '#fbbf24',
@@ -253,40 +269,65 @@ export const PlayerSeat = memo(function PlayerSeat({
           </div>
         )}
 
-        {/* Status badges — show at most one */}
+        {/* Status badges */}
         {player.isAllIn && (
-          <span
-            style={{
-              marginTop: '2px',
-              fontSize: '9px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              padding: '1px 5px',
-              borderRadius: '3px',
-              background: 'rgba(239,68,68,0.18)',
-              color: '#f87171',
-              border: '1px solid rgba(239,68,68,0.35)',
-              display: 'block',
-              textAlign: 'center',
-            }}
-          >
-            ALL IN
-          </span>
+          <div style={{ textAlign: 'center', marginTop: '3px' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                fontSize: '9px',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(239,68,68,0.18)',
+                color: '#f87171',
+                border: '1px solid rgba(239,68,68,0.35)',
+              }}
+            >
+              ALL IN
+            </span>
+          </div>
         )}
         {!player.isAllIn && player.isFolded && (
-          <span
-            style={{
-              marginTop: '2px',
-              fontSize: '10px',
-              color: '#6e7681',
-              display: 'block',
-              textAlign: 'center',
-            }}
-          >
-            FOLDED
-          </span>
+          <div style={{ textAlign: 'center', marginTop: '3px' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                fontSize: '9px',
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(110,118,129,0.15)',
+                color: '#8b949e',
+                border: '1px solid rgba(110,118,129,0.2)',
+              }}
+            >
+              FOLD
+            </span>
+          </div>
         )}
-        {!player.isAllIn && !player.isFolded && isThinking && (
+        {!player.isAllIn && !player.isFolded && isPotWinner && (
+          <div style={{ textAlign: 'center', marginTop: '3px' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                fontSize: '9px',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(34,197,94,0.18)',
+                color: '#4ade80',
+                border: '1px solid rgba(34,197,94,0.35)',
+              }}
+            >
+              WINNER
+            </span>
+          </div>
+        )}
+        {!player.isAllIn && !player.isFolded && !isPotWinner && isThinking && (
           <span
             className="animate-pulse"
             style={{ marginTop: '2px', fontSize: '10px', color: '#fbbf24', display: 'block', textAlign: 'center' }}
@@ -294,7 +335,7 @@ export const PlayerSeat = memo(function PlayerSeat({
             thinking...
           </span>
         )}
-        {!player.isAllIn && !player.isFolded && isHumanActive && (
+        {!player.isAllIn && !player.isFolded && !isPotWinner && isHumanActive && (
           <span
             className="animate-pulse"
             style={{ marginTop: '2px', fontSize: '10px', fontWeight: 700, color: '#93c5fd', display: 'block', textAlign: 'center' }}

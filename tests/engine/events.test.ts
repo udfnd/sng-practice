@@ -77,7 +77,7 @@ describe('Event Creation', () => {
 
   it('should create SHOWDOWN event', () => {
     const event = showdownEvent(1, [
-      { playerId: 'p0', cards: [makeCard(0), makeCard(1)], handRank: 1000 },
+      { playerId: 'p0', cards: [makeCard(0), makeCard(1)], handRank: 1000, handDescription: 'High Card' },
     ]);
     expect(event.type).toBe('SHOWDOWN');
   });
