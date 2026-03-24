@@ -389,7 +389,7 @@ export function translateDecision(
 
   try {
     let actionType = decision.action as import('@/types').ActionType;
-    let amount = decision.amount;
+    const amount = decision.amount;
 
     // Mismatch recovery
     if (actionType === 'CHECK' && facingBet) {

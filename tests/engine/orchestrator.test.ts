@@ -133,9 +133,9 @@ describe('AC-2: Fold-win short circuit', () => {
     const tournament = makeTournament(3);
 
     // Provider that always folds (except first player who acts last preflop — BB gets no action)
-    let callCount = 0;
+    let _callCount = 0;
     const foldEveryone: ActionProvider = async (_playerId, _validActions) => {
-      callCount++;
+      _callCount++;
       return { type: 'FOLD', amount: 0 };
     };
 
@@ -181,9 +181,9 @@ describe('AC-3: All-in runout', () => {
     const tournament = makeTournament(2); // HU for simplicity
 
     // Provider that goes all-in (or calls everything)
-    let moveCount = 0;
+    let _moveCount = 0;
     const goAllIn: ActionProvider = async (_playerId, validActions) => {
-      moveCount++;
+      _moveCount++;
       if (validActions.canRaise) {
         // Raise to max (all-in)
         return { type: 'RAISE', amount: validActions.maxRaise };

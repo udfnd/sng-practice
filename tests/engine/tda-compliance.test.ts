@@ -85,9 +85,7 @@ describe('AC-3: Fold-win event parity', () => {
     const tournament = makeTournament(3, { seed: 'bb-walk-1' });
 
     // Everyone folds except BB (last to act preflop, checks)
-    let actionCount = 0;
     const provider: ActionProvider = async (_playerId, validActions) => {
-      actionCount++;
       // First player (UTG equivalent) folds, SB folds, BB gets walk
       if (validActions.canCheck) return { type: 'CHECK', amount: 0 };
       return { type: 'FOLD', amount: 0 };
@@ -164,7 +162,7 @@ describe('AC-1: All-in runout guard', () => {
   it('should NOT runout when a player still needs to act on a shove', async () => {
     const tournament = makeTournament(3, { seed: 'runout-guard-1' });
 
-    let actedPlayers: string[] = [];
+    const actedPlayers: string[] = [];
     const provider: ActionProvider = async (playerId, validActions) => {
       actedPlayers.push(playerId);
 
