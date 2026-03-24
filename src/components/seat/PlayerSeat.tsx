@@ -24,6 +24,7 @@ export const PlayerSeat = memo(function PlayerSeat({
   const bb = useGameStore((s) => s.gameState?.blindLevel.bb ?? 1);
   const phase = useGameStore((s) => s.gameState?.phase);
   const showdownWinners = useGameStore((s) => s.showdownWinners);
+  const lastAction = useGameStore((s) => s.playerLastAction[player.id]);
 
   const isThinking = thinkingPlayerId === player.id;
   const isHumanActive = player.isHuman && isHumanTurn;
@@ -265,6 +266,26 @@ export const PlayerSeat = memo(function PlayerSeat({
               }}
             >
               {formatAmount(player.currentBet, bb, displayMode)}
+            </span>
+          </div>
+        )}
+
+        {/* Last action label (CHECK, CALL, RAISE, BET) — shown when not in a special state */}
+        {lastAction && !player.isAllIn && !player.isFolded && !isThinking && !isHumanActive && !isPotWinner && (
+          <div style={{ textAlign: 'center', marginTop: '2px' }}>
+            <span
+              style={{
+                display: 'inline-block',
+                fontSize: '9px',
+                fontWeight: 600,
+                letterSpacing: '0.05em',
+                color: lastAction.action === 'CHECK' ? '#8b949e'
+                  : lastAction.action === 'CALL' ? '#60a5fa'
+                  : lastAction.action === 'RAISE' || lastAction.action === 'BET' ? '#fbbf24'
+                  : '#8b949e',
+              }}
+            >
+              {lastAction.action}
             </span>
           </div>
         )}

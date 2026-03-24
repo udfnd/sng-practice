@@ -53,6 +53,8 @@ interface GameStore {
   resumableState: TournamentState | null;
   /** Player IDs who won the pot in the most recent showdown */
   showdownWinners: string[];
+  /** Last action per player for the current street (cleared on new street/hand) */
+  playerLastAction: Record<string, { action: ActionType; amount: number }>;
   /** Accumulated events for the current hand */
   _currentHandEvents: GameEvent[];
 
@@ -111,6 +113,7 @@ const initialState = {
   hasResumableSession: false,
   resumableState: null as TournamentState | null,
   showdownWinners: [] as string[],
+  playerLastAction: {} as Record<string, { action: ActionType; amount: number }>,
   _currentHandEvents: [] as GameEvent[],
   displayMode: loadDisplayMode() as DisplayMode,
 };
@@ -216,6 +219,19 @@ export const useGameStore = create<GameStore>()(
               if (draft.actionLog.length > 200) {
                 draft.actionLog = draft.actionLog.slice(-100);
               }
+            }
+
+            // Track player last action for UI display (check, call, raise, etc.)
+            if (event.type === 'PLAYER_ACTION') {
+              const p = event.payload;
+              if (p.type === 'PLAYER_ACTION') {
+                draft.playerLastAction[p.playerId] = { action: p.action, amount: p.amount };
+              }
+            }
+
+            // Clear last actions on new street (community cards dealt) or new hand
+            if (event.type === 'DEAL_COMMUNITY' || event.type === 'HAND_START') {
+              draft.playerLastAction = {};
             }
 
             // Track pot winners for UI display
