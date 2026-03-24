@@ -152,12 +152,29 @@ export function collectBets(
     }
   }
 
+  // Merge side pots with no eligible players into the nearest eligible pot.
+  // This happens when all contributors above an all-in boundary have folded.
+  // Their forfeited bets should go to the surviving eligible pool.
+  const finalSidePots: SidePot[] = [];
+  for (const sp of sidePots) {
+    if (sp.eligiblePlayerIds.length === 0) {
+      // Merge into last valid side pot, or main pot if none
+      if (finalSidePots.length > 0) {
+        finalSidePots[finalSidePots.length - 1]!.amount += sp.amount;
+      } else {
+        mainPot += sp.amount;
+      }
+    } else {
+      finalSidePots.push(sp);
+    }
+  }
+
   // Zero all bets
   for (const p of players) {
     p.currentBet = 0;
   }
 
-  return { mainPot, sidePots, mainPotEligibleIds };
+  return { mainPot, sidePots: finalSidePots, mainPotEligibleIds };
 }
 
 /**

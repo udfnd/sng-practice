@@ -254,21 +254,50 @@ describe('isBettingComplete', () => {
 // ========== All-In Runout ==========
 
 describe('isAllInRunout', () => {
+  const defaultState: import('@/types').BettingRoundState = {
+    street: 'FLOP',
+    currentBet: 500,
+    lastFullRaiseSize: 500,
+    lastAggressorId: null,
+    actedPlayerIds: [],
+    playerLastFacedBet: {},
+  };
+
   it('should detect when all players are all-in', () => {
     const players = [
       { ...player('A', 0, 500), isAllIn: true, isFolded: false },
       { ...player('B', 0, 500), isAllIn: true, isFolded: false },
     ];
-    expect(isAllInRunout(players)).toBe(true);
+    expect(isAllInRunout(players, defaultState)).toBe(true);
   });
 
-  it('should detect when one active + rest all-in/folded', () => {
+  it('should detect when one active player has matched bet and acted', () => {
     const players = [
       { ...player('A', 500, 500), isAllIn: false, isFolded: false },
       { ...player('B', 0, 500), isAllIn: true, isFolded: false },
       { ...player('C', 0, 0), isAllIn: false, isFolded: true },
     ];
-    expect(isAllInRunout(players)).toBe(true);
+    const state = { ...defaultState, actedPlayerIds: ['A'] };
+    expect(isAllInRunout(players, state)).toBe(true);
+  });
+
+  it('should NOT trigger when one active player has NOT acted', () => {
+    const players = [
+      { ...player('A', 500, 500), isAllIn: false, isFolded: false },
+      { ...player('B', 0, 500), isAllIn: true, isFolded: false },
+      { ...player('C', 0, 0), isAllIn: false, isFolded: true },
+    ];
+    const state = { ...defaultState, actedPlayerIds: [] };
+    expect(isAllInRunout(players, state)).toBe(false);
+  });
+
+  it('should NOT trigger when one active player has not matched the current bet', () => {
+    const players = [
+      { ...player('A', 500, 200), isAllIn: false, isFolded: false },
+      { ...player('B', 0, 500), isAllIn: true, isFolded: false },
+    ];
+    const state = { ...defaultState, currentBet: 500, actedPlayerIds: [] };
+    expect(isAllInRunout(players, state)).toBe(false);
   });
 
   it('should not trigger when two active players remain', () => {
@@ -276,7 +305,7 @@ describe('isAllInRunout', () => {
       { ...player('A', 500, 200), isAllIn: false, isFolded: false },
       { ...player('B', 500, 200), isAllIn: false, isFolded: false },
     ];
-    expect(isAllInRunout(players)).toBe(false);
+    expect(isAllInRunout(players, defaultState)).toBe(false);
   });
 });
 

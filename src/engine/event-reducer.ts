@@ -279,8 +279,8 @@ function applyUncalledReturn(state: GameState, payload: UncalledReturnPayload): 
 }
 
 function applyAwardPot(state: GameState, payload: AwardPotPayload): GameState {
-  // For the first AWARD_POT, ensure any outstanding bets are collected first.
-  // This handles the fold-win path where there is no preceding SHOWDOWN event.
+  // For fold-win, bets are still in currentBet (no SHOWDOWN/DEAL_COMMUNITY to trigger collection).
+  // Collect outstanding bets into pot before processing AWARD_POT for potIndex 0.
   const preCollected = payload.potIndex === 0 ? collectOutstandingBets(state) : state;
   const next = cloneState(preCollected);
 

@@ -14,7 +14,6 @@ import {
   transitionToShowdown,
   transitionToHandComplete,
   transitionToWaiting,
-  handleFoldWin,
   isFoldWin,
 } from './state-machine';
 import {
@@ -22,10 +21,12 @@ import {
   applyAction,
   isBettingComplete,
   isAllInRunout,
+  hasReopen,
   type BettingPlayer,
 } from './betting';
 import {
   distributePot,
+  collectBets,
   assertChipInvariant,
   calcUncalledBet,
   type PotPlayer,
@@ -197,18 +198,7 @@ export async function runHand(
 
   // Check for fold-win
   if (isFoldWin(gameState)) {
-    const totalPot = gameState.mainPot + gameState.sidePots.reduce((s, sp) => s + sp.amount, 0);
-    const winnerId = handleFoldWin(gameState);
-    assertChipInvariant(
-      toPotPlayers(gameState.players),
-      gameState.mainPot,
-      gameState.sidePots,
-      totalChips,
-    );
-    events.push(
-      awardPotEvent(gameState.handNumber, 0, [{ playerId: winnerId, amount: totalPot }]),
-    );
-    transitionToHandComplete(gameState);
+    settleFoldWin(tournament, events);
     return events;
   }
 
@@ -217,7 +207,7 @@ export async function runHand(
   for (const street of streets) {
     // Check for all-in runout (skip betting, just deal)
     const bettingPlayers = toBettingPlayers(gameState.players);
-    const runout = isAllInRunout(bettingPlayers);
+    const runout = isAllInRunout(bettingPlayers, gameState.bettingRound);
 
     // Transition to next street (deals community cards)
     transitionToNextStreet(gameState, deck);
@@ -245,18 +235,7 @@ export async function runHand(
 
       // Check fold-win after each street
       if (isFoldWin(gameState)) {
-        const totalPot = gameState.mainPot + gameState.sidePots.reduce((s, sp) => s + sp.amount, 0);
-        const winnerId = handleFoldWin(gameState);
-        assertChipInvariant(
-          toPotPlayers(gameState.players),
-          gameState.mainPot,
-          gameState.sidePots,
-          totalChips,
-        );
-        events.push(
-          awardPotEvent(gameState.handNumber, 0, [{ playerId: winnerId, amount: totalPot }]),
-        );
-        transitionToHandComplete(gameState);
+        settleFoldWin(tournament, events);
         return events;
       }
     }
@@ -304,7 +283,7 @@ async function runBettingRound(
   let bettingPlayers = toBettingPlayers(gameState.players.filter((p) => p.isActive));
 
   // Check if already done (e.g., all-in runout)
-  if (isAllInRunout(bettingPlayers)) return;
+  if (isAllInRunout(bettingPlayers, gameState.bettingRound)) return;
   if (isBettingComplete(bettingPlayers, gameState.bettingRound)) return;
 
   // Find first player to act
@@ -346,8 +325,13 @@ async function runBettingRound(
       continue;
     }
 
+    // Compute raise rights: player has reopen right if they haven't acted yet,
+    // or if they face a cumulative increase >= lastFullRaiseSize (TDA Rule 47)
+    const hasReopenRight = !gameState.bettingRound.actedPlayerIds.includes(bettingPlayer.id)
+      || hasReopen(bettingPlayer.id, gameState.bettingRound);
+
     // Get valid actions
-    const validActions = getValidActions(bettingPlayer, gameState.bettingRound, gameState.blindLevel.bb);
+    const validActions = getValidActions(bettingPlayer, gameState.bettingRound, gameState.blindLevel.bb, hasReopenRight);
 
     // Capture isFacingFirstRaise BEFORE applyAction, because applyAction
     // updates lastAggressorId when this player raises. If captured after,
@@ -445,7 +429,7 @@ async function runBettingRound(
     if (isBettingComplete(bettingPlayers, gameState.bettingRound)) break;
 
     // Check all-in runout
-    if (isAllInRunout(bettingPlayers)) break;
+    if (isAllInRunout(bettingPlayers, gameState.bettingRound)) break;
 
     // Get next player
     currentPlayerId = getNextPlayer(
@@ -458,6 +442,63 @@ async function runBettingRound(
 
   // Handle uncalled bet return (if last aggressor's bet was not matched)
   handleUncalledBet(tournament, events);
+}
+
+/**
+ * Settle a fold-win hand with proper event emission.
+ * Order: uncalled return → collect bets → award pot → HAND_COMPLETE
+ * Events emitted match exactly what happened in state.
+ */
+function settleFoldWin(tournament: TournamentState, events: GameEvent[]): void {
+  const { gameState, totalChips } = tournament;
+  const handNumber = gameState.handNumber;
+
+  const nonFolded = gameState.players.filter((p) => p.isActive && !p.isFolded);
+  if (nonFolded.length !== 1) {
+    throw new Error(`settleFoldWin requires exactly 1 non-folded player, got ${nonFolded.length}`);
+  }
+  const winner = nonFolded[0]!;
+
+  // Step 1: Return uncalled bet
+  handleUncalledBet(tournament, events);
+
+  // Step 2: Collect remaining bets into pot
+  const potPlayers = gameState.players.map((p) => ({
+    id: p.id,
+    chips: p.chips,
+    currentBet: p.currentBet,
+    isFolded: p.isFolded,
+    isAllIn: p.isAllIn,
+  }));
+  const result = collectBets(potPlayers, gameState.mainPot, gameState.sidePots);
+  gameState.mainPot = result.mainPot;
+  gameState.sidePots = result.sidePots;
+  for (const p of gameState.players) {
+    const pp = potPlayers.find((pp) => pp.id === p.id)!;
+    p.currentBet = pp.currentBet;
+    p.chips = pp.chips;
+  }
+
+  // Step 3: Calculate total pot and award to winner
+  const totalPot = gameState.mainPot + gameState.sidePots.reduce((sum, sp) => sum + sp.amount, 0);
+  winner.chips += totalPot;
+  gameState.mainPot = 0;
+  gameState.sidePots = [];
+
+  // Step 4: Emit AWARD_POT with correct post-uncalled amount
+  events.push(
+    awardPotEvent(handNumber, 0, [{ playerId: winner.id, amount: totalPot }]),
+  );
+
+  assertChipInvariant(
+    toPotPlayers(gameState.players),
+    gameState.mainPot,
+    gameState.sidePots,
+    totalChips,
+  );
+
+  // Step 5: Transition to HAND_COMPLETE
+  transitionToHandComplete(gameState);
 }
 
 /**
@@ -532,9 +573,44 @@ async function runShowdown(
     .map((p) => p.seatIndex)
     .sort((a, b) => a - b);
 
-  let potIndex = 0;
+  // TDA standard: settle side pots first (most restricted → least restricted), then main pot.
+  // Reverse order: last side pot created = most restricted (fewest eligible players).
+  // potIndex: 0 = main pot (settled last), 1+ = side pots (semantic, matches reducer expectations)
+  let sidePotIndex = gameState.sidePots.length; // start from highest, count down
+  const reversedSidePots = [...gameState.sidePots].reverse();
+  for (const sidePot of reversedSidePots) {
+    const sidePotEligible = reveals.filter((r) =>
+      sidePot.eligiblePlayerIds.includes(r.playerId),
+    );
 
-  // Main pot: all non-folded eligible players
+    // Empty eligible set = upstream bug in pot calculation. Fail fast.
+    if (sidePotEligible.length === 0) {
+      throw new Error(
+        `Side pot ${potIndex} has no eligible players at showdown. ` +
+        `Eligible IDs: [${sidePot.eligiblePlayerIds.join(',')}], ` +
+        `Reveal IDs: [${reveals.map((r) => r.playerId).join(',')}]`
+      );
+    }
+
+    const sideWinners = determineWinners(sidePotEligible);
+    const payouts = distributePot(
+      sidePot.amount,
+      sideWinners,
+      winnerSeatMap,
+      gameState.buttonSeatIndex,
+      activeSeatOrder,
+    );
+
+    for (const payout of payouts) {
+      const player = gameState.players.find((p) => p.id === payout.playerId);
+      if (player) player.chips += payout.amount;
+    }
+
+    events.push(awardPotEvent(gameState.handNumber, sidePotIndex--, payouts));
+  }
+  gameState.sidePots = [];
+
+  // Main pot: all non-folded eligible players (settled last per TDA, potIndex=0)
   if (gameState.mainPot > 0) {
     const mainPotEligible = reveals.filter((r) => {
       const player = gameState.players.find((p) => p.id === r.playerId);
@@ -556,41 +632,9 @@ async function runShowdown(
     }
     gameState.mainPot = 0;
 
-    events.push(awardPotEvent(gameState.handNumber, potIndex++, payouts));
-    assertChipInvariant(toPotPlayers(gameState.players), gameState.mainPot, gameState.sidePots, totalChips);
+    events.push(awardPotEvent(gameState.handNumber, 0, payouts));
   }
 
-  // Side pots
-  for (const sidePot of gameState.sidePots) {
-    let sidePotEligible = reveals.filter((r) =>
-      sidePot.eligiblePlayerIds.includes(r.playerId),
-    );
-
-    // If no eligible players remain at showdown (all folded), fall back to all
-    // non-folded players to preserve chip conservation
-    if (sidePotEligible.length === 0) {
-      sidePotEligible = reveals;
-    }
-    if (sidePotEligible.length === 0) continue;
-
-    const sideWinners = determineWinners(sidePotEligible);
-    const payouts = distributePot(
-      sidePot.amount,
-      sideWinners,
-      winnerSeatMap,
-      gameState.buttonSeatIndex,
-      activeSeatOrder,
-    );
-
-    for (const payout of payouts) {
-      const player = gameState.players.find((p) => p.id === payout.playerId);
-      if (player) player.chips += payout.amount;
-    }
-
-    events.push(awardPotEvent(gameState.handNumber, potIndex++, payouts));
-  }
-
-  gameState.sidePots = [];
   assertChipInvariant(toPotPlayers(gameState.players), gameState.mainPot, gameState.sidePots, totalChips);
 }
 

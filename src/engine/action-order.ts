@@ -171,11 +171,12 @@ export function getNextPlayer(
  * @param bb Big blind amount (used for minimum bet sizing)
  * @returns ValidActionsResult describing what actions are available
  */
-// @MX:NOTE | canRaise is true even for short all-in below min-raise (all-in is always permitted)
+// @MX:NOTE | canRaise respects TDA Rule 47: short all-in does not reopen betting for already-acted players
 export function getValidActions(
   player: BettingPlayer,
   bettingRound: BettingRoundState,
   _bb: number,
+  hasReopenRight: boolean = true,
 ): ValidActionsResult {
   const facingBet = bettingRound.currentBet;
   const playerBet = player.currentBet;
@@ -194,8 +195,9 @@ export function getValidActions(
   // Can bet: only when no current bet on this street
   const canBet = facingBet === 0;
 
-  // Can raise: when there is a current bet (and player has chips)
-  const canRaise = facingBet > 0 && stack > 0;
+  // Can raise: when there is a current bet, player has chips, AND has raise rights.
+  // After a short all-in, previously-acted players lose raise rights (TDA Rule 47).
+  const canRaise = facingBet > 0 && stack > 0 && hasReopenRight;
 
   // Call amount calculation
   let callAmount = 0;

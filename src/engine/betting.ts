@@ -192,8 +192,10 @@ export function applyAction(
 
   const newBet = player.currentBet;
 
+  const isFullRaise = result.raiseIncrement >= state.lastFullRaiseSize;
+
   // Track full raise for re-open
-  if (result.raiseIncrement >= state.lastFullRaiseSize) {
+  if (isFullRaise) {
     state.lastFullRaiseSize = result.raiseIncrement;
   }
 
@@ -202,9 +204,16 @@ export function applyAction(
   // Record what this player faced (their own bet, so no re-open check needed for self)
   state.playerLastFacedBet[player.id] = newBet;
 
-  // A bet/raise reopens action for all previously acted players
-  // Clear acted list except current player — everyone else needs to act again
-  state.actedPlayerIds = [player.id];
+  if (isFullRaise) {
+    // Full raise: reopen betting for everyone — all must act again
+    state.actedPlayerIds = [player.id];
+  } else {
+    // Short all-in: do NOT reopen betting for already-acted players (TDA Rule 47)
+    // Only add current player to acted list
+    if (!state.actedPlayerIds.includes(player.id)) {
+      state.actedPlayerIds.push(player.id);
+    }
+  }
 }
 
 /**
@@ -267,16 +276,29 @@ export function isBettingComplete(
 }
 
 /**
- * Check if all remaining players are either all-in or folded (no more betting possible).
+ * Check if all remaining players are either all-in or folded, AND no decision is pending.
+ * Runout is only allowed when:
+ * - All non-folded players are all-in, OR
+ * - Exactly 1 non-all-in player remains AND they have already matched the current bet
+ *   (i.e., they've acted and have no facing decision)
  */
-export function isAllInRunout(players: BettingPlayer[]): boolean {
+export function isAllInRunout(players: BettingPlayer[], state: BettingRoundState): boolean {
   const nonFolded = players.filter((p) => !p.isFolded);
   if (nonFolded.length <= 1) return true;
 
-  const active = nonFolded.filter((p) => !p.isAllIn);
-  // 0 active = all are all-in
-  // 1 active with everyone else all-in = no more action needed
-  return active.length <= 1;
+  const withChips = nonFolded.filter((p) => !p.isAllIn);
+
+  // All non-folded players are all-in
+  if (withChips.length === 0) return true;
+
+  // 1 player with chips: only runout if they've matched the bet and acted
+  if (withChips.length === 1) {
+    const player = withChips[0]!;
+    return player.currentBet >= state.currentBet && state.actedPlayerIds.includes(player.id);
+  }
+
+  // 2+ players with chips: normal betting continues
+  return false;
 }
 
 /**
