@@ -2,7 +2,7 @@ import type { GamePhase, GameState, Player, BlindLevel, Card } from '@/types';
 import { resolveSeats, type SeatAssignment } from './seat-resolver';
 import { createDeck, dealMany, type Deck } from './deck';
 import { createPreflopBettingRound, createBettingRound } from './betting';
-import { collectBets, addBbaToMainPot, calcUncalledBet } from './pot';
+import { collectBets, addBbaToMainPot } from './pot';
 
 /**
  * Hand context — tracks per-hand state not stored in GameState.
@@ -235,68 +235,6 @@ export function transitionToNextStreet(
   // New betting round
   state.bettingRound = createBettingRound(transition.next as any, state.blindLevel.bb);
   state.phase = transition.next;
-}
-
-/**
- * Handle fold-win: all but one player folded.
- * collectBets → uncalled return → award pot → HAND_COMPLETE
- */
-// @MX:WARN @MX:REASON="collect+uncalled+award in one path, complex bet sync" | Fold-win fast path with multi-step pot resolution
-export function handleFoldWin(state: GameState): string {
-  const nonFolded = state.players.filter((p) => p.isActive && !p.isFolded);
-  if (nonFolded.length !== 1) {
-    throw new Error(`Fold-win requires exactly 1 non-folded player, got ${nonFolded.length}`);
-  }
-
-  const winner = nonFolded[0]!;
-
-  // Collect remaining street bets
-  const potPlayers = state.players.map((p) => ({
-    id: p.id,
-    chips: p.chips,
-    currentBet: p.currentBet,
-    isFolded: p.isFolded,
-    isAllIn: p.isAllIn,
-  }));
-
-  // Calculate uncalled bet before collecting.
-  // The second-highest bet must include folded players' currentBets, because folded
-  // players' bets are still in currentBet and will be collected into the pot.
-  // Only the winner (non-folded) can have an uncalled portion above the highest
-  // matched bet among all other active players (folded or not).
-  const winnerCurrentBet = winner.currentBet;
-  const secondHighestBet = state.players
-    .filter((p) => p.isActive && p.id !== winner.id)
-    .reduce((max, p) => Math.max(max, p.currentBet), 0);
-
-  const uncalledAmount = calcUncalledBet(winnerCurrentBet, secondHighestBet);
-
-  // Return uncalled bet
-  if (uncalledAmount > 0) {
-    const winnerPot = potPlayers.find((p) => p.id === winner.id)!;
-    winnerPot.currentBet -= uncalledAmount;
-    winnerPot.chips += uncalledAmount;
-  }
-
-  const result = collectBets(potPlayers, state.mainPot, state.sidePots);
-  state.mainPot = result.mainPot;
-  state.sidePots = result.sidePots;
-
-  // Sync back
-  for (const p of state.players) {
-    const pp = potPlayers.find((pp) => pp.id === p.id)!;
-    p.currentBet = pp.currentBet;
-    p.chips = pp.chips;
-  }
-
-  // Award all pots to winner
-  const totalPot = state.mainPot + state.sidePots.reduce((sum, sp) => sum + sp.amount, 0);
-  winner.chips += totalPot;
-  state.mainPot = 0;
-  state.sidePots = [];
-
-  state.phase = 'HAND_COMPLETE';
-  return winner.id;
 }
 
 /**

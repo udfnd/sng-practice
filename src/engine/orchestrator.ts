@@ -402,10 +402,15 @@ async function runBettingRound(
     });
 
     // Sync back to game state player
+    const chipsDelta = player.currentBet - bettingPlayer.currentBet; // negative = added chips to bet
     player.chips = bettingPlayer.chips;
     player.currentBet = bettingPlayer.currentBet;
     player.isFolded = bettingPlayer.isFolded;
     player.isAllIn = bettingPlayer.isAllIn;
+    // Track total hand commitment (currentBet increased → totalHandBet increased)
+    if (chipsDelta < 0) {
+      player.totalHandBet += -chipsDelta;
+    }
 
     // Emit PLAYER_ACTION event
     events.push(
@@ -503,30 +508,39 @@ function settleFoldWin(tournament: TournamentState, events: GameEvent[]): void {
 
 /**
  * Return uncalled bet to the last aggressor if their bet exceeds the second-highest bet.
+ *
+ * The second-highest bet must include ALL active players (including folded ones),
+ * because folded players' currentBet represents matched money already committed.
+ * Ignoring folded players would over-return chips and distort pot distribution.
  */
 function handleUncalledBet(tournament: TournamentState, events: GameEvent[]): void {
   const { gameState } = tournament;
-  const activePlayers = gameState.players.filter((p) => p.isActive && !p.isFolded);
 
-  if (activePlayers.length < 1) return;
+  // The last bettor/raiser is always a non-folded player with the highest bet.
+  const nonFolded = gameState.players.filter((p) => p.isActive && !p.isFolded);
+  if (nonFolded.length < 1) return;
 
-  const sortedBets = activePlayers
+  const sortedNonFolded = nonFolded
     .map((p) => ({ id: p.id, bet: p.currentBet }))
     .sort((a, b) => b.bet - a.bet);
 
-  if (sortedBets.length < 1) return;
+  const highestBet = sortedNonFolded[0]!.bet;
+  const lastBettorId = sortedNonFolded[0]!.id;
 
-  const highestBet = sortedBets[0]!.bet;
-  const secondBet = sortedBets[1]?.bet ?? 0;
+  // Second-highest bet from ANY active player (including folded).
+  // Folded players' currentBet is still matched money that counts toward pot construction.
+  const secondBet = gameState.players
+    .filter((p) => p.isActive && p.id !== lastBettorId)
+    .reduce((max, p) => Math.max(max, p.currentBet), 0);
+
   const uncalledAmount = calcUncalledBet(highestBet, secondBet);
 
   if (uncalledAmount > 0) {
-    const playerId = sortedBets[0]!.id;
-    const player = gameState.players.find((p) => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === lastBettorId);
     if (player) {
       player.currentBet -= uncalledAmount;
       player.chips += uncalledAmount;
-      events.push(uncalledReturnEvent(gameState.handNumber, playerId, uncalledAmount));
+      events.push(uncalledReturnEvent(gameState.handNumber, lastBettorId, uncalledAmount));
     }
   }
 }

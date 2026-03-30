@@ -6,12 +6,12 @@ import {
   transitionToDealing,
   transitionToPreflop,
   transitionToNextStreet,
-  handleFoldWin,
   isFoldWin,
+  transitionToHandComplete,
   transitionToWaiting,
 } from '@/engine/state-machine';
 import { resolveAction, applyAction } from '@/engine/betting';
-import { assertChipInvariant } from '@/engine/pot';
+import { assertChipInvariant, collectBets, calcUncalledBet } from '@/engine/pot';
 import type { BlindLevel } from '@/types';
 
 const DEFAULT_BLIND: BlindLevel = { level: 1, sb: 10, bb: 20, ante: 5 };
@@ -152,13 +152,46 @@ describe('Fold-Win Fast Path', () => {
 
     expect(isFoldWin(state)).toBe(true);
 
-    const winnerId = handleFoldWin(state);
+    // Settle fold-win: uncalled return → collect → award → complete
+    const nonFolded = state.players.filter((p) => p.isActive && !p.isFolded);
+    const winner = nonFolded[0]!;
+
+    // Return uncalled bet (include folded players for second-highest)
+    const highestBet = winner.currentBet;
+    const secondBet = state.players
+      .filter((p) => p.isActive && p.id !== winner.id)
+      .reduce((max, p) => Math.max(max, p.currentBet), 0);
+    const uncalled = calcUncalledBet(highestBet, secondBet);
+    if (uncalled > 0) {
+      winner.currentBet -= uncalled;
+      winner.chips += uncalled;
+    }
+
+    // Collect remaining bets
+    const potPlayers = state.players.map((p) => ({
+      id: p.id, chips: p.chips, currentBet: p.currentBet,
+      isFolded: p.isFolded, isAllIn: p.isAllIn,
+    }));
+    const result = collectBets(potPlayers, state.mainPot, state.sidePots);
+    state.mainPot = result.mainPot;
+    state.sidePots = result.sidePots;
+    for (const p of state.players) {
+      const pp = potPlayers.find((pp) => pp.id === p.id)!;
+      p.currentBet = pp.currentBet;
+      p.chips = pp.chips;
+    }
+
+    // Award total pot to winner
+    const totalPot = state.mainPot + state.sidePots.reduce((s, sp) => s + sp.amount, 0);
+    winner.chips += totalPot;
+    state.mainPot = 0;
+    state.sidePots = [];
+
+    transitionToHandComplete(state);
+
     expect(state.phase).toBe('HAND_COMPLETE');
     expect(state.mainPot).toBe(0);
     expect(state.sidePots).toHaveLength(0);
-
-    // Winner should have gained chips
-    const winner = state.players.find((p) => p.id === winnerId)!;
     expect(winner.chips).toBeGreaterThan(STARTING_CHIPS);
 
     // Check invariant (total chips = 3 × 1500 = 4500)
