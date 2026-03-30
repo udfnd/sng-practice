@@ -46,7 +46,7 @@ export const PokerTable = memo(function PokerTable({
     <div className="w-full h-full relative">
       {/* Outer rail (wooden border) */}
       <div
-        className="absolute inset-0 rounded-[50%]"
+        className="absolute inset-0 rounded-[9999px]"
         style={{
           background: 'linear-gradient(145deg, #8b5520 0%, #6b3f10 50%, #4a2c0a 100%)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)',
@@ -57,7 +57,7 @@ export const PokerTable = memo(function PokerTable({
         className="absolute flex flex-col items-center justify-center"
         style={{
           top: '7px', bottom: '7px', left: '7px', right: '7px',
-          borderRadius: '50%',
+          borderRadius: '9999px',
           background: 'radial-gradient(ellipse at 40% 35%, #2d6a3f 0%, #1a5c2a 45%, #0f3d1a 100%)',
           boxShadow: 'inset 0 4px 20px rgba(0,0,0,0.5), inset 0 -2px 10px rgba(0,0,0,0.4)',
           border: '2px solid rgba(0,0,0,0.4)',
@@ -66,7 +66,7 @@ export const PokerTable = memo(function PokerTable({
       >
         {/* Felt texture highlight */}
         <div
-          className="absolute inset-0 rounded-[50%] pointer-events-none"
+          className="absolute inset-0 rounded-[9999px] pointer-events-none"
           style={{
             background: 'radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.05) 0%, transparent 55%)',
           }}

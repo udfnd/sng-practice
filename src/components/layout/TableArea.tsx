@@ -28,35 +28,68 @@ import { PlayerSeat } from '@/components/seat/PlayerSeat';
  *            [S0]  (hero)
  */
 
-// Convert degrees to ellipse-edge percentage coordinates.
-// The oval has aspect-ratio 2:1, so we scale the x-axis by 2.
-// Degrees follow clock convention: 0=right, 90=top, 180=left, 270=bottom.
-// We use standard math angles (counterclockwise from right) but the
-// design spec uses clockwise from bottom, so we map accordingly.
+// Convert degrees to race-track (stadium) perimeter percentage coordinates.
+// The container has aspect-ratio 2:1. The race-track shape has semicircular
+// caps on the left and right ends with straight sections on top and bottom.
+//
+// In percentage-space (center at 50%,50%):
+//   - Semicircle caps are visually circular with radius = half the height
+//   - Cap centers at x=25% and x=75% (i.e., ±25 from center)
+//   - In %-space the caps are ellipses: semi-x=25, semi-y=50 (circular when rendered 2:1)
+//   - Straight sections span x ∈ [25%, 75%] at y=0% (top) and y=100% (bottom)
+//
+// Degrees: 0=right, 90=top, 180=left, 270=bottom (standard math, CCW from right).
+// A ray from center at angle θ intersects the stadium boundary.
 function degToPos(deg: number): { top: string; left: string } {
-  // Design degrees: 0=right, 90=top, 180=left, 270=bottom (clockwise from right)
-  // Convert to standard math radians (counter-clockwise from right)
   const rad = (deg * Math.PI) / 180;
-  // Ellipse: a=0.5 (x-radius), b=0.5 (y-radius) in normalized coords [0,1]
-  // But the container has aspect-ratio 2:1, so visual x-radius = 1.0 container width,
-  // and visual y-radius = 0.5 container height. We parametrize on the unit circle
-  // and project onto the ellipse perimeter in percentage space.
-  const x = 50 + 50 * Math.cos(rad);   // 0%..100% along width
-  const y = 50 - 50 * Math.sin(rad);   // 0%..100% along height (y-axis flipped)
-  return { left: `${x.toFixed(1)}%`, top: `${y.toFixed(1)}%` };
+  const cosA = Math.cos(rad);
+  const sinA = Math.sin(rad);
+
+  // Threshold: cos²θ = 1/5 separates cap zones from straight zones.
+  // When cos²θ ≥ 0.2, the ray hits a semicircle cap; otherwise a straight edge.
+  const COS2_THRESHOLD = 0.2;
+
+  let x: number;
+  let y: number;
+
+  if (cosA * cosA >= COS2_THRESHOLD) {
+    // Ray hits a semicircle cap (right or left).
+    // Derived from ray–ellipse intersection with cap center at (±25, 0).
+    const t = 200 * Math.abs(cosA) / (3 * cosA * cosA + 1);
+    x = t * cosA;
+    y = t * sinA;
+  } else if (sinA > 0) {
+    // Ray hits the top straight edge (y = +50 in math coords → top = 0%)
+    const t = 50 / sinA;
+    x = t * cosA;
+    y = 50;
+  } else {
+    // Ray hits the bottom straight edge (y = -50 in math coords → top = 100%)
+    const t = -50 / sinA;
+    x = t * cosA;
+    y = -50;
+  }
+
+  // Convert from math coords (center-origin, y-up) to CSS percentage (top-left origin, y-down)
+  const left = 50 + x;
+  const top = 50 - y;
+
+  return { left: `${left.toFixed(1)}%`, top: `${top.toFixed(1)}%` };
 }
 
 // Seat degree positions — counter-clockwise from hero.
 // Seats increase to the LEFT (counter-clockwise) from hero's perspective.
+// Diagonal seats (1,3,5,7) shifted 15° toward the nearest straight edge
+// so they sit closer to the center of the race-track table.
 //   Seat 0 (human): 270° — bottom center
-//   Seat 1: 225° — bottom-left
+//   Seat 1: 240° — bottom-left (was 225°, shifted toward bottom)
 //   Seat 2: 180° — left
-//   Seat 3: 135° — top-left
+//   Seat 3: 120° — top-left (was 135°, shifted toward top)
 //   Seat 4:  90° — top center
-//   Seat 5:  45° — top-right
+//   Seat 5:  60° — top-right (was 45°, shifted toward top)
 //   Seat 6:   0° — right
-//   Seat 7: 315° — bottom-right
-const SEAT_DEGREES = [270, 225, 180, 135, 90, 45, 0, 315] as const;
+//   Seat 7: 300° — bottom-right (was 315°, shifted toward bottom)
+const SEAT_DEGREES = [270, 240, 180, 120, 90, 60, 0, 300] as const;
 
 const SEAT_POSITIONS = SEAT_DEGREES.map(degToPos);
 

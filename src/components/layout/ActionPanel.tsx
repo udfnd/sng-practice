@@ -325,6 +325,8 @@ export function ActionPanel() {
       className="action-panel-safe glass-panel-heavy"
       style={{
         height: '100%',
+        maxWidth: '600px',
+        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
